@@ -1,22 +1,28 @@
 package aula2ex3;
 
 public class Calculo {
-	private double salario;
+	private double desconto;
+	
 	public void calcular(Funcionarios f) {
-		salario += s.getSalario();
+		desconto = f.getSalario() - f.getSalario() * 0.15;
 	}
-	public double getSalario() {
-		return salario;
+	public double getDesconto() {
+		return desconto;
 	}
 	public static void main(String[] args) {
 		Funcionarios f1 = new Funcionarios ("F1", 2500.00);
 		Funcionarios f2 = new Funcionarios ("F2", 2500.00);
 		Funcionarios f3 = new Funcionarios ("F3", 2500.00);
 		Calculo calculo = new Calculo();
-		calculo.adicionar(f1);
-		calculo.adicionar(f2);
-		calculo.adicionar(f3);
-		
+		calculo.calcular(f1);
+		calculo.calcular(f2);
+		calculo.calcular(f3);
+		System.out.println("f1 = " + calculo.getDesconto());
+		System.out.println("f2 = " + calculo.getDesconto());
+		System.out.println("f3 = " + calculo.getDesconto());
 	}
-
+	
 }
+	
+
+
