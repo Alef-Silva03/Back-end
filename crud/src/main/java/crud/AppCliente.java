@@ -13,9 +13,9 @@ public class AppCliente {
 
 		while (true) {
 			System.out.println("\nMenu:");
-			System.out.println("1. Adicionar Cliente");
+			System.out.println("1. Adicionar Clientes");
 			System.out.println("2. Listar Clientes");
-			System.out.println("3. Atualizar Cliente");
+			System.out.println("3. Atualizar Clientes");
 			System.out.println("4. Deletar Cliente");
 			System.out.println("5. Sair");
 

@@ -14,9 +14,9 @@ public class App {
 
 		while (true) {
 			System.out.println("\nMenu:");
-			System.out.println("1. Adicionar Usuário");
+			System.out.println("1. Adicionar Usuários");
 			System.out.println("2. Listar Usuários");
-			System.out.println("3. Atualizar Usuário");
+			System.out.println("3. Atualizar Usuários");
 			System.out.println("4. Deletar Usuário");
 			System.out.println("5. Sair");
 

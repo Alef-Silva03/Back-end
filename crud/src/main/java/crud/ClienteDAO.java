@@ -39,6 +39,25 @@ public class ClienteDAO {
 		return clientes;
 	}
 
+	 public Cliente buscarPorId(int idcliente) throws SQLException {  // ✅ Buscar por ID
+	        String sql = "SELECT * FROM cliente WHERE idcliente = ?";
+	        try (Connection conn = ConexaoFactory.conectar();
+	             PreparedStatement stmt = conn.prepareStatement(sql)) {
+	            stmt.setInt(1, idcliente);
+	            try (ResultSet rs = stmt.executeQuery()) {
+	                if (rs.next()) {
+	                    Cliente cliente = new Cliente();
+	                    cliente.setIdcliente(rs.getInt("idcliente"));
+	                    cliente.setNome(rs.getString("nome"));
+	                    cliente.setCpf(rs.getString("cpf"));
+	                    cliente.setEmail(rs.getString("email"));
+	                    return cliente;
+	                }
+	            }
+	        }
+	        return null;
+	    }
+	
 	// UPDATE
 	public void atualizarCliente(Cliente cliente) throws SQLException {
 		String sql = "UPDATE cliente SET nome = ?, email = ?, cpf = ? WHERE idcliente = ?";
