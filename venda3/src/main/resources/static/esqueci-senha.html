@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Senha - Vendas API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .card-recovery {
+            background: white; border-radius: 1rem; box-shadow: 0 1rem 3rem rgba(0,0,0,0.2);
+            width: 100%; max-width: 420px; padding: 2.5rem;
+        }
+        .btn-primary { background-color: #1e3c72; border: none; }
+        .step-icon { font-size: 3rem; color: #1e3c72; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+
+    <div class="card-recovery shadow">
+        <div class="text-center mb-4">
+            <div id="iconContainer"><i class="bi bi-envelope-at-fill step-icon"></i></div>
+            <h2 class="fw-bold" id="titulo">Recuperar Senha</h2>
+            <p class="text-muted small" id="subtitulo">Informe seu e-mail para validar sua conta.</p>
+        </div>
+
+        <div id="fase1">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">E-mail</label>
+                <input type="email" id="emailRecupera" class="form-control" placeholder="seu@email.com">
+            </div>
+            <button onclick="solicitarToken()" class="btn btn-primary w-100 fw-bold py-2">SOLICITAR ACESSO</button>
+        </div>
+
+        <div id="fase2" style="display: none;">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Código (Token)</label>
+                <input type="text" id="tokenInput" class="form-control" placeholder="Cole o código do banco de dados">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nova Senha</label>
+                <input type="password" id="novaSenha" class="form-control" placeholder="Mínimo 6 caracteres">
+            </div>
+            <button onclick="confirmarTroca()" class="btn btn-success w-100 fw-bold py-2">ATUALIZAR SENHA</button>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="login.html" class="text-decoration-none small fw-bold"><i class="bi bi-arrow-left"></i> Voltar ao Login</a>
+        </div>
+    </div>
+
+    <script>
+        async function solicitarToken() {
+            const email = document.getElementById('emailRecupera').value;
+            if(!email) return alert("Digite o e-mail.");
+
+            const res = await fetch('/api/auth/esqueci-senha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            if (res.ok) {
+                alert("Sucesso! Verifique o token na tabela 'usuario' do seu banco de dados.");
+                document.getElementById('fase1').style.display = 'none';
+                document.getElementById('fase2').style.display = 'block';
+                document.getElementById('titulo').innerText = "Nova Senha";
+                document.getElementById('subtitulo').innerText = "Use o token gerado no MySQL para redefinir.";
+                document.getElementById('iconContainer').innerHTML = '<i class="bi bi-shield-lock-fill step-icon text-success"></i>';
+            } else {
+                alert("E-mail não encontrado.");
+            }
+        }
+
+        async function confirmarTroca() {
+            const token = document.getElementById('tokenInput').value;
+            const novaSenha = document.getElementById('novaSenha').value;
+
+            const res = await fetch('/api/auth/resetar-senha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, novaSenha })
+            });
+
+            if (res.ok) {
+                alert("Senha atualizada! Faça login agora.");
+                window.location.href = 'login.html';
+            } else {
+                alert("Erro: Token inválido ou expirado.");
+            }
+        }
+    </script>
+</body>
+</html>

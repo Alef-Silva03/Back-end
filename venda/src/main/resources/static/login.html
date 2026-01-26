@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Vendas API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; }
+        .card { border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .nav-tabs-custom .nav-link { border-radius: 10px 10px 0 0; }
+        .nav-tabs-custom .nav-link.active { background: #667eea; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card border-0">
+                    <div class="card-body p-5">
+                        <!-- ALERTAS -->
+                        <div id="alertContainer" class="mb-4"></div>
+
+                        <!-- ABAS -->
+                        <ul class="nav nav-tabs nav-tabs-custom mb-4" id="authTabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#login" data-bs-toggle="tab">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i>Entrar
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#cadastro" data-bs-toggle="tab">
+                                    <i class="bi bi-person-plus me-1"></i>Cadastrar
+                                </a>
+                            </li>
+                        </ul>
+
+                        <!-- CONTEÚDO -->
+                        <div class="tab-content">
+                            <!-- ✅ LOGIN COM SENHA -->
+                            <div class="tab-pane fade show active" id="login">
+                                <form id="formLogin">
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-envelope me-1"></i>Email
+                                        </label>
+                                        <input type="email" class="form-control form-control-lg" id="loginEmail" 
+                                               placeholder="email" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-lock me-1"></i>Senha
+                                        </label>
+                                        <input type="password" class="form-control form-control-lg" id="loginSenha" 
+                                               placeholder="senha" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100 py-3 mb-3">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Entrar
+                                    </button>
+                                    <div class="text-center">
+                                        <small class="text-muted">
+                                            <strong>🔑 Teste:</strong><br>
+                                            usuario@dominio / senha 6 digitos → <span class="text-info">CLIENTE</span><br>
+                                            usuario@dominio / senha 6 digitos→ <span class="text-danger">ADMIN</span>
+                                        </small>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- CADASTRO (mantido igual) -->
+                            <div class="tab-pane fade" id="cadastro">
+                                <form id="formCadastro">
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">Nome</label>
+                                        <input type="text" class="form-control form-control-lg" id="nome" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">Email</label>
+                                        <input type="email" class="form-control form-control-lg" id="cadastroEmail" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">Senha</label>
+                                        <input type="password" class="form-control form-control-lg" id="cadastroSenha" minlength="6" required>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-outline-primary w-100 py-2 role-btn active" data-role="CLIENTE">
+                                                <i class="bi bi-person"></i> Cliente
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-outline-danger w-100 py-2 role-btn" data-role="ADMIN">
+                                                <i class="bi bi-person-gear"></i> Admin
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100 py-3">
+                                        <i class="bi bi-person-plus me-2"></i>Cadastrar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 🎯 Roles (cadastro)
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // ✅ LOGIN PERFEITO POR PERFIL
+        document.getElementById('formLogin').addEventListener('submit', async e => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const senha = document.getElementById('loginSenha').value;
+            
+            // Validação
+            if (!email || !senha) {
+                showAlert('warning', 'Preencha email e senha!');
+                return;
+            }
+
+            try {
+                showAlert('info', '🔄 Verificando credenciais...');
+                
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    credentials: 'include',  // ✅ SESSION mantida
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+                
+                const data = await response.json();
+                console.log('✅ Login resposta:', data);
+                
+                if (response.ok && data.success) {
+                    showAlert('success', `🎉 Bem-vindo ${data.nome || data.email}!`);
+                    
+                    // 🚀 REDIRECIONAMENTO POR PERFIL
+                    setTimeout(() => {
+                        if (data.perfil === 'ADMIN') {
+                            console.log('👩‍💼 ADMIN → index.html');
+                            window.location.href = 'index.html';  // ACESSO TOTAL
+                        } else if (data.perfil === 'CLIENTE') {
+                            console.log('👩 CLIENTE → meuspedidos.html');
+                            window.location.href = 'meuspedidos.html';  // SÓ seus pedidos
+                        }
+                    }, 1200);
+                } else {
+                    showAlert('danger', data.message || 'Email ou senha incorretos!');
+                    document.getElementById('loginSenha').value = '';
+                    document.getElementById('loginEmail').focus();
+                }
+            } catch (error) {
+                console.error('❌ Erro login:', error);
+                showAlert('danger', '❌ Erro de conexão. Verifique o servidor.');
+            }
+        });
+
+        // ✅ CADASTRO (mantido 100% igual)
+        document.getElementById('formCadastro').addEventListener('submit', async e => {
+            e.preventDefault();
+            const dados = {
+                nome: document.getElementById('nome').value.trim(),
+                email: document.getElementById('cadastroEmail').value.trim(),
+                senha: document.getElementById('cadastroSenha').value,
+                perfil: document.querySelector('.role-btn.active').dataset.role
+            };
+            
+            try {
+                const res = await fetch('/api/auth/cadastro', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(dados)
+                });
+                const result = await res.json();
+                
+                showAlert(res.ok ? 'success' : 'danger', result.message || 'Erro desconhecido');
+                
+                if (res.ok) {
+                    // Limpa formulário após sucesso
+                    document.getElementById('formCadastro').reset();
+                    document.querySelector('.role-btn').classList.add('active');
+                }
+            } catch (err) {
+                showAlert('danger', 'Erro de conexão');
+            }
+        });
+
+        // 🔔 Alertas Bootstrap
+        function showAlert(type, message) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="bi ${type === 'success' ? 'bi-check-circle' : 
+                        type === 'danger' ? 'bi-x-circle' : 
+                        type === 'info' ? 'bi-info-circle' : 'bi-exclamation-triangle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        // Enter funciona
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const activeTab = document.querySelector('.tab-pane.active');
+                if (activeTab.id === 'login') {
+                    document.getElementById('formLogin').dispatchEvent(new Event('submit'));
+                }
+            }
+        });
+    </script>
+</body>
+</html>

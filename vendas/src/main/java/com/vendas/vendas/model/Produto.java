@@ -6,74 +6,41 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "produto")
 public class Produto {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "idproduto")
-	private long idproduto;
 
-	@Column(name = "nomeproduto", length = 100, nullable = false)
-	private String nomeproduto;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idproduto")
+    private Long idproduto;
 
-	@Column(name = "categoria", length = 50)
-	private String categoria;
+    @Column(name = "nome", nullable = false, length = 100)
+    private String nome;
 
-	@Column(name = "preco", nullable = false)
-	private Float preco;
+    @Column(name = "preco", nullable = false, precision = 10, scale = 2)
+    private BigDecimal preco;
 
-	@Column(name = "estoque")
-	private Integer estoque = 0;
+    @Column(name = "estoque")  // ✅ CAMPO ESTOQUE ADICIONADO
+    private Long estoque;
 
-	// Construtores
-	public Produto() {
-	}
+    // ✅ CONSTRUTORES
+    public Produto() {}
 
-	public Produto(String nomeproduto, String categoria, Float preco, Integer estoque) {
-		this.nomeproduto = nomeproduto;
-		this.categoria = categoria;
-		this.preco = preco;
-		this.estoque = estoque;
-	}
+    public Produto(String nome, BigDecimal preco, Long estoque) {
+        this.nome = nome;
+        this.preco = preco;
+        this.estoque = estoque;
+    }
 
-	// Getters e Setters (encapsulamento OO)
+    // ✅ GETTERS E SETTERS
+    public Long getIdproduto() { return idproduto; }
+    public void setIdproduto(Long idproduto) { this.idproduto = idproduto; }
 
-	public long getIdproduto() {
-		return idproduto;
-	}
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-	public void setIdproduto(long idproduto) {
-		this.idproduto = idproduto;
-	}
+    public BigDecimal getPreco() { return preco; }
+    public void setPreco(BigDecimal preco) { this.preco = preco; }
 
-	public String getNomeproduto() {
-		return nomeproduto;
-	}
-
-	public void setNomeproduto(String nomeproduto) {
-		this.nomeproduto = nomeproduto;
-	}
-
-	public String getCategoria() {
-		return categoria;
-	}
-
-	public void setCategoria(String categoria) {
-		this.categoria = categoria;
-	}
-
-	public Float getPreco() {
-		return preco;
-	}
-
-	public void setPreco(Float preco) {
-		this.preco = preco;
-	}
-
-	public Integer getEstoque() {
-		return estoque;
-	}
-
-	public void setEstoque(Integer estoque) {
-		this.estoque = estoque;
-	}
-
+    public Long getEstoque() { return estoque; }  // ✅ GETTER ESTOQUE
+    public void setEstoque(Long estoque) { this.estoque = estoque; }
 }
+

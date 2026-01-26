@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Meus Pedidos - Sistema de Vendas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-header { font-weight: bold; }
+        .status-pendente { background-color: #ffc107; color: #000; }
+        .status-confirmado { background-color: #198754; color: #fff; }
+    </style>
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/loja">Minha Loja</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/loja">Vitrine</a>
+                <a class="nav-link active" href="/cliente/meus-pedidos">Meus Pedidos</a>
+                <a class="nav-link" href="/cliente/perfil">Meu Perfil</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="mb-0 text-primary">Meu Histórico de Pedidos</h4>
+            </div>
+            <div class="card-body">
+                
+                <div th:if="${#lists.isEmpty(pedidos)}" class="alert alert-warning">
+                    Você ainda não possui pedidos realizados. 
+                    <a href="/loja" class="alert-link">Clique aqui para ver os produtos.</a>
+                </div>
+
+                <div th:if="${not #lists.isEmpty(pedidos)}" class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Pedido #</th>
+                                <th>Data e Hora</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="p : ${pedidos}">
+                                <td th:text="${p.id}" class="fw-bold">1</td>
+                                
+                                <td th:text="${#temporals.format(p.dataPedido, 'dd/MM/yyyy HH:mm')}">
+                                    01/01/2026 10:00
+                                </td>
+                                
+                                <td>
+                                    <span th:text="${p.status}" 
+                                          class="badge"
+                                          th:classappend="${p.status.name() == 'PENDENTE' ? 'bg-warning text-dark' : 'bg-success'}">
+                                        PENDENTE
+                                    </span>
+                                </td>
+                                
+                                <td th:text="${'R$ ' + #numbers.formatDecimal(p.valorTotal, 1, 'POINT', 2, 'COMMA')}">
+                                    R$ 0,00
+                                </td>
+                                
+                                <td class="text-center">
+                                    <a th:href="@{/cliente/pedido/{id}(id=${p.id})}" class="btn btn-sm btn-outline-primary">
+                                        Ver Detalhes
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4">
+                    <a href="/loja" class="btn btn-secondary text-white">
+                        ← Voltar para a Loja
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

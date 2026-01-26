@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Vendas - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">
+                🛒 Vendas API - <span id="perfilBadge" class="badge bg-light text-dark">Carregando...</span>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-warning" href="#" id="logoutBtn" style="cursor: pointer;">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="container mt-5 text-center">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+        <p class="mt-3">Verificando perfil do usuário...</p>
+    </div>
+
+    <!-- DASHBOARD ADMIN -->
+    <div id="adminDashboard" class="container mt-5" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8 text-center">
+                <div class="mb-5">
+                    <h1 class="display-4 fw-bold text-primary mb-4">🛒 Sistema Vendas</h1>
+                    <p class="lead fs-2 text-success mb-5">
+                        <i class="bi bi-star-fill me-2"></i> Modo ADMINISTRADOR ATIVADO
+                    </p>
+                </div>
+
+                <!-- CARDS ADMIN -->
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-3">
+                        <a href="cliente.html" class="btn btn-primary btn-lg w-100 h-100 shadow-lg p-4 text-decoration-none">
+                            <i class="bi bi-person-lines-fill fs-1 d-block mb-3"></i>
+                            <h5 class="fw-bold mb-1">Clientes</h5>
+                            <small class="text-muted">Gerenciar clientes</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <a href="produto.html" class="btn btn-success btn-lg w-100 h-100 shadow-lg p-4 text-decoration-none">
+                            <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
+                            <h5 class="fw-bold mb-1 text-white">Produtos</h5>
+                            <small class="text-white-50">Gerenciar produtos</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <a href="todos.html" class="btn btn-danger btn-lg w-100 h-100 shadow-lg p-4 text-decoration-none">
+                            <i class="bi bi-list-check fs-1 d-block mb-3"></i>
+                            <h5 class="fw-bold mb-1 text-white">Todos Pedidos</h5>
+                            <small class="text-white-50">Ver todos os pedidos</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <a href="pedido.html" class="btn btn-info btn-lg w-100 h-100 shadow-lg p-4 text-decoration-none">
+                            <i class="bi bi-cart-plus fs-1 d-block mb-3"></i>
+                            <h5 class="fw-bold mb-1 text-white">Novo Pedido</h5>
+                            <small class="text-white-50">Criar pedido</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD CLIENTE -->
+    <div id="clienteDashboard" class="container mt-5" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8 text-center">
+                <div class="mb-5">
+                    <h1 class="display-4 fw-bold text-primary mb-4">🛒 Meus Pedidos</h1>
+                    <p class="lead fs-2 text-info mb-5">
+                        <i class="bi bi-person-check me-2"></i> Modo CLIENTE
+                    </p>
+                </div>
+                <div class="row g-4">
+                    <div class="col-12">
+                        <a href="meuspedidos.html" class="btn btn-info btn-lg w-100 shadow-lg p-4 text-decoration-none">
+                            <i class="bi bi-cart-check fs-1 d-block mb-3"></i>
+                            <h5 class="fw-bold mb-1 text-white">📦 Meus Pedidos</h5>
+                            <small class="text-white-50">Ver apenas seus pedidos</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NÃO AUTENTICADO -->
+    <div id="naoAutenticado" class="container mt-5" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <i class="bi bi-shield-lock fs-1 text-muted mb-4 d-block"></i>
+                <h2 class="fw-bold text-muted mb-4">Acesso Restrito</h2>
+                <p class="lead text-muted mb-5">Faça login para acessar o sistema.</p>
+                <a href="login.html" class="btn btn-primary btn-lg">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Fazer Login
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ✅ CARREGA PERFIL AO ABRIR PÁGINA
+        document.addEventListener('DOMContentLoaded', function() {
+            verificarPerfil();
+        });
+
+        async function verificarPerfil() {
+            try {
+                const response = await fetch('/api/auth/perfil', { 
+                    credentials: 'include'  // ✅ COOKIES DA SESSÃO
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // ✅ ATUALIZA NAVBAR
+                    document.getElementById('perfilBadge').textContent = data.perfil;
+                    
+                    if (data.perfil === 'ADMIN') {
+                        // ✅ ADMIN - mostra dashboard completo
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                        document.getElementById('adminDashboard').style.display = 'block';
+                    } else if (data.perfil === 'CLIENTE') {
+                        // ✅ CLIENTE - só seus pedidos
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                        document.getElementById('clienteDashboard').style.display = 'block';
+                    }
+                } else {
+                    // ❌ NÃO AUTENTICADO
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    document.getElementById('naoAutenticado').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar perfil:', error);
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('naoAutenticado').style.display = 'block';
+            }
+        }
+
+        // ✅ LOGOUT
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = '/logout';
+        });
+    </script>
+</body>
+</html>
+

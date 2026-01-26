@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sistema Vendas2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar { height: 100vh; position: fixed; z-index: 1000; }
+        .content { margin-left: 280px; padding: 20px; }
+        .table-container { max-height: 500px; overflow-y: auto; }
+        @media (max-width: 768px) { .sidebar { display: none; } .content { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar bg-dark text-white p-3">
+        <div class="d-flex align-items-center mb-4">
+            <i class="bi bi-person-shield fs-3 text-primary me-2"></i>
+            <h4>Admin</h4>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link text-white" href="#" onclick="showSection('clientes')"><i class="bi bi-people me-2"></i>Clientes</a></li>
+            <li class="nav-item"><a class="nav-link text-white" href="#" onclick="showSection('produtos')"><i class="bi bi-box-seam me-2"></i>Produtos</a></li>
+            <li class="nav-item"><a class="nav-link text-white" href="#" onclick="showSection('pedidos')"><i class="bi bi-bag-check me-2"></i>Pedidos</a></li>
+            <li class="nav-item"><a class="nav-link text-white" href="#" onclick="showSection('usuarios')"><i class="bi bi-person-lines-fill me-2"></i>Usuarios</a></li>
+        </ul>
+        <hr class="text-white">
+        <a href="index.html" class="nav-link text-white" onclick="logout()">
+            <i class="bi bi-box-arrow-right me-2"></i>Sair
+        </a>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 id="section-title">Gerenciar Clientes</h2>
+            <button class="btn btn-primary" onclick="showForm('create')">
+                <i class="bi bi-plus-circle me-2"></i>Novo
+            </button>
+        </div>
+
+        <!-- Formulário CRUD -->
+        <div id="crud-form" class="card mb-4" style="display: none;">
+            <div class="card-header">
+                <h5 id="form-title">Novo Registro</h5>
+                <button class="btn btn-sm btn-outline-secondary float-end" onclick="hideForm()">Fechar</button>
+            </div>
+            <div class="card-body">
+                <form id="crud-form-data">
+                    <input type="hidden" id="edit-id">
+                    
+                    <!-- Campos dinâmicos -->
+                    <div id="form-fields"></div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                        <button type="button" class="btn btn-secondary me-md-2" onclick="hideForm()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <span>Lista de Registros</span>
+                <div>
+                    <input type="text" class="form-control form-control-sm d-inline-block w-auto" id="search-input" placeholder="Pesquisar..." style="width: 250px;">
+                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="loadData()"><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive table-container">
+                    <table class="table table-hover mb-0" id="data-table">
+                        <thead class="table-dark sticky-top">
+                            <tr id="table-headers"></tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr><td colspan="100" class="text-center p-4">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+let currentSection = 'clientes';
+let currentData = [];
+let clientesMap = {};
+let produtosMap = {};
+
+// Configuração das seções
+// ✅ Substituir em sections:
+const sections = {
+    clientes: {
+        title: 'Clientes',
+        endpoint: '/api/usuarios/clientes',  // ✅ JOIN automático
+        fields: [
+            { name: 'cliente.nome', label: 'Nome *', type: 'text', required: true },
+            { name: 'cliente.cpf', label: 'CPF', type: 'text' },
+            { name: 'cliente.email', label: 'Email', type: 'email' },
+            { name: 'cliente.telefone', label: 'Telefone', type: 'tel' },
+            { name: 'username', label: 'Username *', type: 'text', required: true },
+            { name: 'password', label: 'Senha *', type: 'password', required: true }
+        ],
+        headers: ['ID', 'Nome Cliente', 'Username', 'CPF', 'Email', 'Telefone', 'Ações']
+    },
+    // ... outros sections iguais
+
+
+
+    produtos: {
+        title: 'Produtos',
+        endpoint: '/api/produtos',
+        fields: [
+            { name: 'nome', label: 'Nome *', type: 'text', required: true },
+            { name: 'preco', label: 'Preço *', type: 'number', step: '0.01', required: true },
+            { name: 'estoque', label: 'Estoque *', type: 'number', required: true }
+        ],
+        headers: ['ID', 'Nome', 'Preço', 'Estoque', 'Ações']
+    },
+    pedidos: {
+        title: 'Pedidos',
+        endpoint: '/api/pedidos',
+        fields: [
+            { name: 'idcliente', label: 'ID Cliente', type: 'number' },
+            { name: 'idproduto', label: 'ID Produto', type: 'number' },
+            { name: 'qtd', label: 'Quantidade *', type: 'number', required: true },
+            { name: 'total', label: 'Total *', type: 'number', step: '0.01', required: true }
+        ],
+        headers: ['ID', 'Cliente', 'Produto', 'Qtd', 'Total', 'Data', 'Ações']
+    },
+    usuarios: {
+        title: 'Usuarios',
+        endpoint: '/api/usuarios',
+        fields: [
+            { name: 'username', label: 'Username *', type: 'text', required: true },
+            { name: 'password', label: 'Senha *', type: 'password', required: true },
+            { name: 'perfil', label: 'Perfil *', type: 'select', options: ['ADMIN', 'CLIENTE', 'OUTROS'], required: true }
+        ],
+        headers: ['ID', 'Username', 'Perfil', 'Cliente', 'Ações']
+    }
+};
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    checkAuth();
+    carregarReferencias(); // ✅ Carrega clientes + produtos primeiro
+    setTimeout(() => showSection('clientes'), 500);
+});
+
+//✅ POR ISSO:
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (!token) {
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    try {
+        const user = userData ? JSON.parse(userData) : {};
+        if (!user.perfil || user.perfil !== 'ADMIN') {
+            window.location.href = 'index.html';
+        }
+    } catch (e) {
+        console.log('❌ Token inválido, redirecionando...');
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+}
+
+function carregarReferencias() {
+    // ✅ Carrega clientes e produtos para mostrar nomes
+    Promise.all([
+        fetch('http://localhost:8080/api/clientes', getHeaders()).then(r => r.json()).catch(() => []),
+        fetch('http://localhost:8080/api/produtos', getHeaders()).then(r => r.json()).catch(() => [])
+    ]).then(([clientes, produtos]) => {
+        clientesMap = {};
+        clientes.forEach(c => clientesMap[c.idcliente] = c.nome);
+        produtosMap = {};
+        produtos.forEach(p => produtosMap[p.id] = p.nome);
+    });
+}
+
+function getHeaders() {
+    const token = localStorage.getItem('token');
+    return {
+        'Authorization': token || '',
+        'Content-Type': 'application/json'
+    };
+}
+
+function showSection(section) {
+    currentSection = section;
+    document.getElementById('section-title').textContent = `Gerenciar ${sections[section].title}`;
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    event.target.classList.add('active');
+    hideForm();
+    loadData();
+}
+
+function loadData() {
+    const endpoint = sections[currentSection].endpoint;
+    console.log('🔄 Carregando:', endpoint);
+    
+    fetch(`http://localhost:8080${endpoint}`, {
+        headers: getHeaders()
+    })
+    .then(res => {
+        console.log('📡 Status:', res.status, endpoint);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    })
+    .then(data => {
+        console.log('✅ Dados:', data.length, endpoint);
+        currentData = data;
+        renderTable(data);
+    })
+    .catch(err => {
+        console.error('❌ ERRO:', endpoint, err);
+        document.getElementById('table-body').innerHTML = 
+            '<tr><td colspan="100" class="text-center p-4 text-danger">Erro ao carregar: ' + err.message + '</td></tr>';
+    });
+}
+
+function renderTable(data) {
+    const section = sections[currentSection];
+    const tbody = document.getElementById('table-body');
+    const headers = document.getElementById('table-headers');
+    
+    headers.innerHTML = section.headers.map(h => `<th>${h}</th>`).join('');
+    
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="100" class="text-center p-4">Nenhum registro encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = data.map((item, index) => {
+        let rowData = [];
+        
+        // ✅ MOSTRAR NOMES REAIS (não só IDs)
+        switch(currentSection) {
+            case 'clientes':
+                rowData = [
+                    item.idcliente || index + 1,
+                    item.nome || '-',
+                    item.cpf || '-',
+                    item.email || '-',
+                    item.telefone || '-',
+                    getActions(item.idcliente || item.id || index + 1)
+                ];
+                break;
+            case 'produtos':
+                rowData = [
+                    item.id || index + 1,
+                    item.nome || '-',
+                    'R$ ' + (item.preco || 0).toFixed(2),
+                    item.estoque || 0,
+                    getActions(item.id || index + 1)
+                ];
+                break;
+            case 'pedidos':
+                rowData = [
+                    item.idpedido || index + 1,
+                    clientesMap[item.idcliente] || item.idcliente || '-',
+                    produtosMap[item.idproduto] || item.idproduto || '-',
+                    item.qtd || 0,
+                    'R$ ' + (item.total || 0).toFixed(2),
+                    item.datacriacao ? new Date(item.datacriacao).toLocaleDateString('pt-BR') : '-',
+                    getActions(item.idpedido || index + 1)
+                ];
+                break;
+            case 'usuarios':
+                rowData = [
+                    item.idusuario || index + 1,
+                    item.username || '-',
+                    item.perfil || '-',
+                    clientesMap[item.cliente?.idcliente] || item.cliente?.nome || '-',
+                    getActions(item.idusuario || index + 1)
+                ];
+                break;
+        }
+        
+        return `<tr>${rowData.map(d => `<td>${d}</td>`).join('')}</tr>`;
+    }).join('');
+}
+
+function getActions(id) {
+    return `
+        <button class="btn btn-sm btn-outline-primary me-1" onclick="editItem(${id})" title="Editar">
+            <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteItem(${id})" title="Excluir">
+            <i class="bi bi-trash"></i>
+        </button>
+    `;
+}
+
+function showForm(mode) {
+    document.getElementById('crud-form').style.display = 'block';
+    document.getElementById('form-title').textContent = mode === 'edit' ? 'Editar Registro' : `Novo ${sections[currentSection].title}`;
+    document.getElementById('edit-id').value = '';
+    renderFormFields();
+}
+
+function hideForm() {
+    document.getElementById('crud-form').style.display = 'none';
+}
+
+function renderFormFields() {
+    const section = sections[currentSection];
+    const container = document.getElementById('form-fields');
+    
+    container.innerHTML = section.fields.map(field => {
+        if (field.type === 'select') {
+            return `
+                <div class="mb-3">
+                    <label class="form-label">${field.label}</label>
+                    <select class="form-select" name="${field.name}" ${field.required ? 'required' : ''}>
+                        <option value="">Selecione...</option>
+                        ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        }
+        return `
+            <div class="mb-3">
+                <label class="form-label">${field.label}</label>
+                <input type="${field.type}" class="form-control" name="${field.name}" 
+                       ${field.required ? 'required' : ''} 
+                       ${field.step ? `step="${field.step}"` : ''}>
+            </div>
+        `;
+    }).join('');
+}
+
+function editItem(id) {
+    const item = currentData.find(item => 
+        (item.id || item.idcliente || item.idpedido || item.idusuario) == id
+    );
+    if (item) {
+        showForm('edit');
+        document.getElementById('edit-id').value = id;
+        document.querySelectorAll('#form-fields input, #form-fields select').forEach(input => {
+            const field = input.getAttribute('name');
+            if (item[field]) input.value = item[field];
+        });
+    }
+}
+
+function deleteItem(id) {
+    if (!confirm(`Confirma exclusão do registro ID ${id}?`)) return;
+    
+    const endpoint = sections[currentSection].endpoint + '/' + id;
+    fetch(`http://localhost:8080${endpoint}`, { 
+        method: 'DELETE',
+        headers: getHeaders()
+    })
+    .then(() => {
+        showToast('Registro excluído com sucesso!', 'success');
+        loadData();
+    })
+    .catch(err => showToast('Erro ao excluir: ' + err.message, 'error'));
+}
+
+// Form submit
+document.getElementById('crud-form-data').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData);
+    const id = document.getElementById('edit-id').value;
+    const endpoint = sections[currentSection].endpoint + (id ? '/' + id : '');
+    const method = id ? 'PUT' : 'POST';
+    
+    fetch(`http://localhost:8080${endpoint}`, {
+        method,
+        headers: getHeaders(),
+        body: JSON.stringify(data)
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    })
+    .then(() => {
+        showToast('Registro salvo com sucesso!', 'success');
+        hideForm();
+        loadData();
+    })
+    .catch(err => showToast('Erro ao salvar: ' + err.message, 'error'));
+});
+
+// Search
+document.getElementById('search-input').addEventListener('input', function() {
+    const term = this.value.toLowerCase();
+    const filtered = currentData.filter(item => 
+        JSON.stringify(item).toLowerCase().includes(term)
+    );
+    renderTable(filtered);
+});
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed fs-6`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    toast.innerHTML = `${message} <button type="button" class="btn-close float-end" onclick="this.parentElement.remove()"></button>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+}
+
+function logout() {
+    if (confirm('Deseja sair do sistema?')) {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+}
+</script>
+
+</body>
+</html>
+

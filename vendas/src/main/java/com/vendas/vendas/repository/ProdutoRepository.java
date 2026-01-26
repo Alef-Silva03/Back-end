@@ -2,8 +2,10 @@ package com.vendas.vendas.repository;
 
 import com.vendas.vendas.model.Produto;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
 
-@Repository
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
+    
+    // ✅ AGORA FUNCIONA: Campo 'estoque' existe
+    List<Produto> findByEstoqueGreaterThan(Long estoque);
 }

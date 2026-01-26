@@ -1,0 +1,90 @@
+/* Configurações Globais */
+body {
+    background-color: #f0f2f5; /* Um cinza levemente mais azulado para contraste */
+    color: #444;
+}
+
+/* Container principal com scroll suave */
+.container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* Card Estilizado (Engenharia de UI) */
+.card {
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Sombra suave para profundidade */
+.shadow {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Cabeçalho do Card */
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Estilização dos Inputs */
+.form-control {
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+}
+
+/* Feedback visual para campos Somente Leitura (ViaCEP) */
+.form-control[readonly] {
+    background-color: #e9ecef !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* Foco nos campos */
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+}
+
+/* Mensagens de erro do Backend */
+.text-danger.small {
+    font-weight: 500;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    display: block;
+}
+
+/* Seções do Formulário (Dados Pessoais / Endereço) */
+h6.text-secondary {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    margin-top: 1rem;
+}
+
+/* Botão de Envio */
+.btn-primary {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+}
+
+/* Alinhamento responsivo para telas pequenas */
+@media (max-width: 576px) {
+    .container {
+        padding: 1rem;
+    }
+    .card-body {
+        padding: 1.5rem !important;
+    }
+}

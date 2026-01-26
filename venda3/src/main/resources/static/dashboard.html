@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - Segurança API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        .sidebar { background: #1a2a6c; min-height: 100vh; width: 260px; position: fixed; color: white; z-index: 1000; }
+        .content { margin-left: 260px; padding: 40px; }
+        .sidebar a { color: rgba(255,255,255,0.7); text-decoration: none; padding: 15px 25px; display: block; border-left: 4px solid transparent; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.1); color: white; border-left: 4px solid #fdbb2d; }
+        .profile-card { border: none; border-radius: 15px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .admin-badge { background: #dc3545; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; }
+        .client-badge { background: #198754; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; }
+        .admin-only { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar shadow">
+        <div class="p-4 text-center">
+            <h4 class="fw-bold mb-0">SISTEMA V3</h4>
+            <p class="small opacity-50">Gestão de Identidade</p>
+            <hr class="opacity-25">
+        </div>
+        <nav>
+            <a href="#" class="active"><i class="bi bi-person-badge me-2"></i> Meu Perfil</a>
+            
+            <div id="menuAdmin" class="admin-only">
+                <p class="ps-4 mt-4 small text-uppercase opacity-50 fw-bold" style="font-size: 0.7rem;">Administrador</p>
+                <a href="#"><i class="bi bi-shield-lock me-2"></i> Logs de Acesso</a>
+                <a href="#"><i class="bi bi-people me-2"></i> Listar Usuários</a>
+            </div>
+        </nav>
+        
+        <div class="position-absolute bottom-0 w-100 p-3">
+            <button onclick="logout()" class="btn btn-outline-light btn-sm w-100 border-0">
+                <i class="bi bi-box-arrow-right me-2"></i>Sair
+            </button>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h2 class="fw-bold">Bem-vindo, <span id="userName">...</span></h2>
+                <p class="text-muted">Status da sessão: <span class="text-success fw-bold">Protegida</span></p>
+            </div>
+            <div id="perfilLabel"></div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-7">
+                <div class="card profile-card p-4">
+                    <h5 class="fw-bold mb-4"><i class="bi bi-info-circle me-2 text-primary"></i>Dados da Conta</h5>
+                    <div class="row">
+                        <div class="col-sm-4 text-muted">Nome Completo:</div>
+                        <div class="col-sm-8 fw-bold mb-3" id="infoNome">...</div>
+                        
+                        <div class="col-sm-4 text-muted">E-mail:</div>
+                        <div class="col-sm-8 mb-3" id="infoEmail">...</div>
+                        
+                        <div class="col-sm-4 text-muted">Perfil:</div>
+                        <div class="col-sm-8 mb-3" id="infoPerfil">...</div>
+
+                        <div class="col-sm-4 text-muted">ID Interno:</div>
+                        <div class="col-sm-8" id="infoID">...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5 admin-only">
+                <div class="card profile-card p-4 bg-dark text-white">
+                    <h5 class="fw-bold mb-4 text-warning"><i class="bi bi-shield-shaded me-2"></i>Painel de Segurança</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-3"><i class="bi bi-check-circle-fill text-success me-2"></i> Senhas: <strong>Hash BCrypt</strong></li>
+                        <li class="mb-3"><i class="bi bi-check-circle-fill text-success me-2"></i> Autenticação: <strong>Spring Security</strong></li>
+                        <li class="mb-3"><i class="bi bi-check-circle-fill text-success me-2"></i> Sessão: <strong>HTTP Only</strong></li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i> Banco: <strong>MySQL Ativo</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="clientBanner" class="mt-4 p-5 bg-white rounded-4 shadow-sm text-center border-0" style="display:none;">
+            <i class="bi bi-check2-circle fs-1 text-success mb-3"></i>
+            <h4 class="fw-bold">Conta Verificada</h4>
+            <p class="text-muted">Como CLIENTE, seus dados de acesso estão sincronizados entre as tabelas de Usuário e Cliente.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const PERFIL = localStorage.getItem('perfil');
+        const NOME = localStorage.getItem('nomeUsuario');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!PERFIL) {
+                window.location.href = 'login.html';
+                return;
+            }
+            configurarInterface();
+            carregarDadosServidor();
+        });
+
+        function configurarInterface() {
+            document.getElementById('userName').textContent = NOME;
+            
+            if (PERFIL === 'ADMIN') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                document.getElementById('perfilLabel').innerHTML = '<span class="admin-badge">ADMINISTRADOR</span>';
+            } else {
+                document.getElementById('clientBanner').style.display = 'block';
+                document.getElementById('perfilLabel').innerHTML = '<span class="client-badge">CLIENTE</span>';
+            }
+        }
+
+        async function carregarDadosServidor() {
+            try {
+                // Busca dados direto da sessão do Java para segurança
+                const res = await fetch('/api/dashboard/perfil');
+                if (!res.ok) throw new Error();
+                
+                const user = await res.json();
+                
+                document.getElementById('infoNome').textContent = user.nome;
+                document.getElementById('infoEmail').textContent = user.email;
+                document.getElementById('infoPerfil').textContent = user.perfil;
+                document.getElementById('infoID').textContent = user.id;
+                
+            } catch (err) {
+                console.error("Sessão expirada ou erro no servidor");
+                // Em caso de erro 401 ou 403, volta para o login
+                // window.location.href = 'login.html';
+            }
+        }
+
+        async function logout() {
+            if(confirm("Deseja encerrar sua sessão segura?")) {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Produtos - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .table-card { border-radius: 15px; overflow: hidden; }
+        .product-img { 
+            width: 60px; 
+            height: 60px; 
+            object-fit: cover; 
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" th:href="@{/admin/dashboard}">
+                <i class="bi bi-shield-lock me-2"></i>Painel Administrativo
+            </a>
+            <div class="d-flex">
+                <a th:href="@{/admin/produtos/novo}" class="btn btn-primary shadow-sm">
+                    <i class="bi bi-plus-circle me-2"></i>Cadastrar Produto
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div th:if="${sucesso}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${sucesso}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${erro}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div class="card table-card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="mb-0 fw-bold text-dark">Catálogo de Produtos</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary">
+                            <tr>
+                                <th class="ps-4">Miniatura</th>
+                                <th>Cód.</th>
+                                <th>Nome</th>
+                                <th>Preço</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="p : ${produtos}">
+                                <td class="ps-4">
+                                    <img th:src="${p.foto != null && p.foto != '' ? '/img/produtos/' + p.foto : '/img/sem-foto.png'}" 
+                                         alt="Produto" class="product-img shadow-sm" 
+                                         onerror="this.src='/img/sem-foto.png';">
+                                </td>
+                                <td class="text-muted" th:text="${'#' + p.id}">#1</td>
+                                <td>
+                                    <span class="fw-bold text-dark" th:text="${p.nome}">Nome</span>
+                                </td>
+                                <td class="fw-bold text-primary" 
+                                    th:text="${'R$ ' + #numbers.formatDecimal(p.preco, 1, 'POINT', 2, 'COMMA')}">
+                                    R$ 0,00
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group shadow-sm">
+                                        <a th:href="@{/admin/produtos/editar/{id}(id=${p.id})}" 
+                                           class="btn btn-sm btn-outline-warning" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a th:href="@{/admin/produtos/excluir/{id}(id=${p.id})}" 
+                                           class="btn btn-sm btn-outline-danger" 
+                                           onclick="return confirm('Tem certeza que deseja excluir este produto?')"
+                                           title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(produtos)}">
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="bi bi-inbox text-muted display-4"></i>
+                                    <p class="text-muted mt-2">Nenhum produto cadastrado.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

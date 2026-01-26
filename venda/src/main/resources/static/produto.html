@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtos - Vendas API (ADMIN)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">
+                🛒 Vendas API - <span id="perfilBadge" class="badge bg-light text-dark">ADMIN</span>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="index.html"><i class="bi bi-house"></i> Menu</a>
+                <a class="nav-link" href="cliente.html"><i class="bi bi-person-lines-fill"></i> Clientes</a>
+                <a class="nav-link" href="todos.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                <a class="nav-link text-warning" href="/logout">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT (SEMPRE VISÍVEL - SEM LOADING) -->
+    <div class="container mt-4">
+        <!-- HEADER -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-box-seam-fill text-success"></i> Gerenciar Produtos</h2>
+            <div>
+                <a href="index.html" class="btn btn-secondary me-2">
+                    <i class="bi bi-arrow-left"></i> Menu Principal
+                </a>
+                <span id="perfilLabel" class="badge bg-success fs-6">ADMIN</span>
+            </div>
+        </div>
+
+        <!-- Botão Novo Produto -->
+        <button class="btn btn-primary mb-4 btn-lg shadow-sm" 
+                data-bs-toggle="modal" data-bs-target="#produtoModal" 
+                onclick="limparFormulario()">
+            <i class="bi bi-plus-circle me-2"></i> Adicionar Novo Produto
+        </button>
+
+        <!-- Alert de carregamento -->
+        <div id="loadingAlert" class="alert alert-info mb-4" style="display: none;">
+            <i class="bi bi-hourglass-split me-2"></i> Carregando produtos...
+        </div>
+
+        <!-- Filtro de busca -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="buscaProduto" 
+                                   placeholder="Buscar por nome ou categoria..." 
+                                   onkeyup="filtrarProdutos(this.value)">
+                        </div>
+                    </div>
+                    <div class="col-md-7 text-end">
+                        <span class="text-muted small" id="totalProdutosLabel">Total: 0 produtos</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela Responsiva -->
+        <div class="table-responsive shadow-lg">
+            <table class="table table-hover table-striped" id="tabelaProdutos">
+                <thead class="table-dark sticky-top">
+                    <tr>
+                        <th scope="col" width="80">ID</th>
+                        <th scope="col">Nome do Produto</th>
+                        <th scope="col" width="150">Categoria</th>
+                        <th scope="col" width="120" class="text-end">Preço</th>
+                        <th scope="col" width="100" class="text-end">Estoque</th>
+                        <th scope="col" width="150" class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaBody">
+                    <tr>
+                        <td colspan="6" class="text-center py-5 bg-light">
+                            <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;"></div>
+                            <span class="text-muted">Carregando produtos...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal - Formulário Produto -->
+    <div class="modal fade" id="produtoModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content shadow-xl">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="modalTitle">
+                        <i class="bi bi-plus-circle"></i> Novo Produto
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" 
+                            onclick="limparFormulario()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="produtoForm" novalidate>
+                        <input type="hidden" id="produtoId">
+                        
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">
+                                        Nome do Produto <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="nomeProduto" 
+                                           placeholder="Ex: Notebook i7 32GB" maxlength="100" required>
+                                    <div class="invalid-feedback">Nome é obrigatório</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Categoria</label>
+                                    <input type="text" class="form-control" id="categoria" 
+                                           placeholder="Ex: Eletrônicos" maxlength="50">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">
+                                        Preço (R$) <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" class="form-control" id="preco" 
+                                           step="0.01" min="0.01" placeholder="0.00" required>
+                                    <div class="invalid-feedback">Preço deve ser maior que 0</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Estoque Inicial</label>
+                                    <input type="number" class="form-control" id="estoque" 
+                                           min="0" placeholder="0" value="0">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="limparFormulario()">
+                        <i class="bi bi-x-circle me-2"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success px-4" id="btnSalvarProduto" onclick="salvarProduto()">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" id="salvarSpinner"></span>
+                        <i class="bi bi-check-circle me-2"></i>
+                        <span id="btnModalText">Salvar Produto</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 🎯 VARIÁVEIS GLOBAIS
+        let todosProdutos = [];
+        const tabelaBody = document.getElementById('tabelaBody');
+        const totalProdutosLabel = document.getElementById('totalProdutosLabel');
+        const loadingAlert = document.getElementById('loadingAlert');
+        const perfilBadge = document.getElementById('perfilBadge');
+        const perfilLabel = document.getElementById('perfilLabel');
+
+        // 🌐 API HELPER COM SESSION COOKIE
+        async function fetchApi(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            
+            if (response.status === 401 || response.status === 403) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            return response;
+        }
+
+        // 🔔 TOAST NOTIFICAÇÕES
+        function mostrarToast(mensagem, tipo = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${tipo} border-0 position-fixed`;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${mensagem}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            document.body.appendChild(toast);
+            new bootstrap.Toast(toast).show();
+            toast.addEventListener('hidden.bs.toast', () => toast.remove());
+        }
+
+        // 📋 LISTAR PRODUTOS (IMEDIATO)
+        async function listarProdutos() {
+            try {
+                loadingAlert.style.display = 'block';
+                const response = await fetchApi('/api/produtos');
+                if (!response) return;
+                
+                todosProdutos = await response.json();
+                renderizarTabela(todosProdutos);
+            } catch (error) {
+                console.error('Erro ao carregar produtos:', error);
+                tabelaBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-danger py-5">
+                            <i class="bi bi-exclamation-triangle fs-1 mb-3 d-block"></i>
+                            <strong>Erro ao carregar produtos</strong><br>
+                            <small>Verifique a conexão e tente novamente</small>
+                            <button class="btn btn-outline-success mt-3" onclick="listarProdutos()">
+                                <i class="bi bi-arrow-clockwise"></i> Tentar Novamente
+                            </button>
+                        </td>
+                    </tr>`;
+            } finally {
+                loadingAlert.style.display = 'none';
+            }
+        }
+
+        // 🖥️ RENDERIZAR TABELA
+        function renderizarTabela(produtos) {
+            tabelaBody.innerHTML = '';
+            
+            if (produtos.length === 0) {
+                tabelaBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5 bg-light">
+                            <i class="bi bi-boxes fs-1 text-muted mb-3 d-block"></i>
+                            <h5 class="text-muted mb-1">Nenhum produto cadastrado</h5>
+                            <p class="text-muted mb-3">Comece adicionando o primeiro produto</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#produtoModal" onclick="limparFormulario()">
+                                <i class="bi bi-plus-circle me-2"></i> Cadastrar Primeiro Produto
+                            </button>
+                        </td>
+                    </tr>`;
+                totalProdutosLabel.textContent = 'Total: 0 produtos';
+                return;
+            }
+            
+            produtos.forEach(produto => {
+                const tr = document.createElement('tr');
+                const estoqueClass = produto.estoque > 10 ? 'bg-success' : 
+                                   produto.estoque > 0 ? 'bg-warning' : 'bg-danger';
+                
+                tr.innerHTML = `
+                    <td class="align-middle"><strong>#${produto.id}</strong></td>
+                    <td class="align-middle">
+                        <strong>${produto.nomeProduto || 'Sem nome'}</strong>
+                    </td>
+                    <td class="align-middle">
+                        <span class="badge bg-secondary fs-6 px-2 py-1">
+                            ${produto.categoria || 'Sem categoria'}
+                        </span>
+                    </td>
+                    <td class="align-middle text-end fw-bold text-success fs-6">
+                        R$ ${parseFloat(produto.preco || 0).toLocaleString('pt-BR', { 
+                            minimumFractionDigits: 2 
+                        })}
+                    </td>
+                    <td class="align-middle text-end">
+                        <span class="badge ${estoqueClass} fs-6 px-2 py-1">
+                            ${produto.estoque || 0}
+                        </span>
+                    </td>
+                    <td class="align-middle text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-warning" onclick="editarProduto(${produto.id})" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-danger" onclick="excluirProduto(${produto.id})" title="Excluir">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>`;
+                tabelaBody.appendChild(tr);
+            });
+            
+            totalProdutosLabel.textContent = `Total: ${produtos.length} produto${produtos.length !== 1 ? 's' : ''}`;
+        }
+
+        // 🔍 FILTRAR PRODUTOS
+        function filtrarProdutos(termo) {
+            const termoLower = termo.toLowerCase();
+            const filtrados = todosProdutos.filter(produto => 
+                (produto.nomeProduto || '').toLowerCase().includes(termoLower) ||
+                (produto.categoria || '').toLowerCase().includes(termoLower)
+            );
+            renderizarTabela(filtrados);
+        }
+
+        // 🧹 LIMPAR FORMULÁRIO
+        function limparFormulario() {
+            document.getElementById('produtoForm').reset();
+            document.getElementById('produtoId').value = '';
+            document.getElementById('estoque').value = '0';
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle"></i> Novo Produto';
+            document.getElementById('btnModalText').textContent = 'Salvar Produto';
+            document.getElementById('produtoForm').classList.remove('was-validated');
+        }
+
+        // ✏️ EDITAR PRODUTO
+        async function editarProduto(id) {
+            try {
+                const response = await fetchApi(`/api/produtos/${id}`);
+                if (!response) return;
+                
+                const produto = await response.json();
+                
+                document.getElementById('produtoId').value = produto.id;
+                document.getElementById('nomeProduto').value = produto.nomeProduto || '';
+                document.getElementById('categoria').value = produto.categoria || '';
+                document.getElementById('preco').value = parseFloat(produto.preco || 0);
+                document.getElementById('estoque').value = produto.estoque || 0;
+                
+                document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-square"></i> Editar Produto';
+                document.getElementById('btnModalText').textContent = 'Atualizar Produto';
+                
+                new bootstrap.Modal(document.getElementById('produtoModal')).show();
+            } catch (error) {
+                mostrarToast('Erro ao carregar produto para edição!', 'danger');
+            }
+        }
+
+        // 💾 SALVAR PRODUTO
+        async function salvarProduto() {
+            const form = document.getElementById('produtoForm');
+            
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+            
+            const spinner = document.getElementById('salvarSpinner');
+            const btnSalvar = document.getElementById('btnSalvarProduto');
+            const originalText = btnSalvar.innerHTML;
+            
+            spinner.classList.remove('d-none');
+            btnSalvar.disabled = true;
+            
+            const produto = {
+                id: document.getElementById('produtoId').value || null,
+                nomeProduto: document.getElementById('nomeProduto').value.trim(),
+                categoria: document.getElementById('categoria').value.trim() || null,
+                preco: parseFloat(document.getElementById('preco').value),
+                estoque: parseInt(document.getElementById('estoque').value) || 0
+            };
+
+            try {
+                const metodo = produto.id ? 'PUT' : 'POST';
+                const url = produto.id ? `/api/produtos/${produto.id}` : '/api/produtos';
+                
+                const response = await fetchApi(url, {
+                    method: metodo,
+                    body: JSON.stringify(produto)
+                });
+                
+                if (response && response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('produtoModal')).hide();
+                    listarProdutos();
+                    mostrarToast('Produto salvo com sucesso!', 'success');
+                } else {
+                    mostrarToast('Erro ao salvar produto!', 'danger');
+                }
+            } catch (error) {
+                mostrarToast('Erro ao salvar produto!', 'danger');
+            } finally {
+                spinner.classList.add('d-none');
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = originalText;
+            }
+        }
+
+        // 🗑️ EXCLUIR PRODUTO
+        async function excluirProduto(id) {
+            if (!confirm('Tem certeza que deseja excluir este produto?\nEsta ação não pode ser desfeita.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetchApi(`/api/produtos/${id}`, { method: 'DELETE' });
+                if (response && response.ok) {
+                    listarProdutos();
+                    mostrarToast('Produto excluído com sucesso!', 'success');
+                } else {
+                    mostrarToast('Erro ao excluir produto!', 'danger');
+                }
+            } catch (error) {
+                mostrarToast('Erro ao excluir produto!', 'danger');
+            }
+        }
+
+        // 🚀 INICIA IMEDIATAMENTE (SEM ESPERA)
+        window.addEventListener('load', () => {
+            perfilBadge.textContent = 'ADMIN';
+            perfilLabel.textContent = 'ADMIN';
+            listarProdutos();
+        });
+    </script>
+</body>
+</html>

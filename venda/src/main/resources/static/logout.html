@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saindo... - Vendas API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #48dbfb 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .logout-card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .checkmark {
+            font-size: 4rem;
+            color: #28a745;
+            animation: bounce 0.6s ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        .spinner-border-sm {
+            width: 2rem;
+            height: 2rem;
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center min-vh-100 py-4">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+                <div class="card logout-card shadow-lg border-0 rounded-4 overflow-hidden">
+                    <div class="card-header bg-transparent border-0 pb-0">
+                        <div class="text-center pt-4">
+                            <div id="iconContainer" class="mb-4">
+                                <div class="spinner-border text-primary spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Processando...</span>
+                                </div>
+                            </div>
+                            <h1 class="display-5 fw-bold text-primary mb-1" id="titulo">Finalizando sessão...</h1>
+                            <p class="lead text-muted mb-0" id="mensagem">Aguarde enquanto limpamos seus dados...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-5 text-center" id="conteudoSucesso" style="display: none;">
+                        <div class="checkmark mb-4">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                        <h1 class="display-4 fw-bold text-success mb-3">Logout realizado!</h1>
+                        <p class="lead mb-4">
+                            Você saiu do <strong>Sistema Vendas API</strong> com sucesso.<br>
+                            Todos os tokens foram removidos com segurança.
+                        </p>
+                        <div class="row g-3 justify-content-center">
+                            <div class="col-auto">
+                                <a href="login.html" class="btn btn-primary btn-lg px-5">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                                    Fazer Login
+                                </a>
+                            </div>
+                            <div class="col-auto">
+                                <a href="index.html" class="btn btn-outline-secondary btn-lg px-4">
+                                    <i class="bi bi-house me-2"></i>
+                                    Página Inicial
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        <div class="row text-muted">
+                            <div class="col-6 border-end">
+                                <small><i class="bi bi-shield-check"></i> Sessão encerrada</small>
+                            </div>
+                            <div class="col-6 text-start">
+                                <small><i class="bi bi-clock"></i> 
+                                    <span id="horaLogout"></span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Credenciais rápidas -->
+                <div class="text-center mt-4 text-white">
+                    <div class="card bg-dark bg-opacity-50 border-0">
+                        <div class="card-body py-2">
+                            <small class="text-white-50">
+                                👤 <strong>admin</strong> / 123456 → Admin<br>
+                                👤 <strong>cliente1</strong> / 123456 → Cliente
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 🔐 LOGOUT AUTOMÁTICO COM EFEITOS
+        window.addEventListener('load', function() {
+            // Limpar dados do localStorage IMEDIATAMENTE
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Registrar hora do logout
+            const agora = new Date();
+            document.getElementById('horaLogout').textContent = 
+                agora.toLocaleString('pt-BR');
+            
+            // Simular processo de logout (2 segundos)
+            setTimeout(() => {
+                // Esconder loading
+                document.getElementById('iconContainer').style.display = 'none';
+                document.getElementById('titulo').style.display = 'none';
+                document.getElementById('mensagem').style.display = 'none';
+                
+                // Mostrar sucesso
+                document.getElementById('conteudoSucesso').style.display = 'block';
+                
+                // Scroll suave para o topo
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Log para desenvolvedor
+                console.log('✅ Logout executado:', {
+                    timestamp: agora.toISOString(),
+                    userAgent: navigator.userAgent,
+                    url: window.location.href
+                });
+                
+            }, 2000);
+            
+            // Auto-redirect após 8 segundos (opcional)
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 8000);
+        });
+
+        // Prevenir botão voltar do navegador
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            history.go(1);
+        };
+
+        // Detectar refresh da página
+        window.addEventListener('beforeunload', function(e) {
+            // Não precisa fazer nada - localStorage já foi limpo
+        });
+    </script>
+</body>
+</html>

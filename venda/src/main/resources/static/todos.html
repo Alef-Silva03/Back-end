@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Vendas API (ADMIN)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .metric-card {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        }
+        .stat-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold fs-4" href="index.html">
+                📊 Dashboard 
+                <span id="perfilBadgeNav" class="badge bg-light text-dark">Carregando...</span>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="index.html"><i class="bi bi-house"></i> Menu</a>
+                <a class="nav-link" href="cliente.html"><i class="bi bi-people"></i> Clientes</a>
+                <a class="nav-link" href="produto.html"><i class="bi bi-box"></i> Produtos</a>
+                <a class="nav-link" href="pedido.html"><i class="bi bi-cart"></i> Pedidos</a>
+                <a class="nav-link text-warning" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- LOADING SCREEN -->
+    <div id="loadingDiv" class="d-flex justify-content-center align-items-center vh-100 bg-light">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" style="width: 4rem; height: 4rem;"></div>
+            <h4 class="text-muted">Carregando dashboard...</h4>
+            <div class="mt-3">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                <small>Coletando dados de clientes, produtos e pedidos...</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT (HIDDEN INITIALLY) -->
+    <div id="mainContent" style="display: none;">
+        <div class="container-fluid mt-4 px-4">
+            <!-- HEADER -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h1 class="h2 mb-2">
+                                <i class="bi bi-speedometer2 text-primary"></i> Dashboard Completo
+                            </h1>
+                            <div>
+                                <span id="perfilBadge" class="badge bg-danger fs-6 px-3 py-2 me-2">ADMIN</span>
+                                <span class="badge bg-secondary fs-6 px-3 py-2" id="ultimaAtualizacao">Carregando...</span>
+                            </div>
+                            <p class="text-muted mb-0 mt-2" id="resumoGeral">-</p>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary" onclick="atualizarTudo()">
+                                <i class="bi bi-arrow-clockwise"></i> Atualizar Tudo
+                            </button>
+                            <button class="btn btn-success" onclick="exportarRelatorio()" title="Exportar CSV">
+                                <i class="bi bi-download"></i> Exportar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPIs PRINCIPAL -->
+            <div class="row g-4 mb-5">
+                <!-- TOTAL CLIENTES -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="card metric-card border-start border-primary border-4 h-100 text-white" 
+                         style="background: var(--primary-gradient);">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50 mb-1">Total Clientes</h6>
+                                    <h2 class="mb-0" id="totalClientes">0</h2>
+                                </div>
+                                <i class="bi bi-people-fill fs-1 opacity-75"></i>
+                            </div>
+                            <span class="stat-badge bg-white bg-opacity-25" id="clientesHoje">+0 hoje</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOTAL PRODUTOS -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="card metric-card border-start border-success border-4 h-100 bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50 mb-1">Total Produtos</h6>
+                                    <h2 class="mb-0" id="totalProdutos">0</h2>
+                                </div>
+                                <i class="bi bi-box-seam-fill fs-1 opacity-75"></i>
+                            </div>
+                            <span class="stat-badge bg-white bg-opacity-25" id="produtosAtivos">0 ativos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOTAL PEDIDOS -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="card metric-card border-start border-warning border-4 h-100 bg-warning text-dark">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1 fw-semibold">Total Pedidos</h6>
+                                    <h2 class="mb-0 fw-bold" id="totalPedidos">0</h2>
+                                </div>
+                                <i class="bi bi-cart-check-fill fs-1 opacity-75"></i>
+                            </div>
+                            <span class="stat-badge bg-dark bg-opacity-50 text-white" id="pedidosHoje">+0 hoje</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FATURAMENTO -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="card metric-card border-start border-info border-4 h-100 bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50 mb-1">Faturamento Total</h6>
+                                    <h2 class="mb-0" id="totalFaturamento">R$ 0,00</h2>
+                                </div>
+                                <i class="bi bi-currency-dollar fs-1 opacity-75"></i>
+                            </div>
+                            <span class="stat-badge bg-white bg-opacity-25" id="faturamentoHoje">R$ 0 hoje</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATUS DOS PEDIDOS -->
+            <div class="row g-4 mb-5">
+                <div class="col-12">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-transparent border-0">
+                            <h5 class="mb-0">
+                                <i class="bi bi-pie-chart text-primary me-2"></i>
+                                Status dos Pedidos
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3 mb-4">
+                                    <div class="card border-start border-success border-4 h-100">
+                                        <div class="card-body">
+                                            <i class="bi bi-check-circle-fill fs-1 text-success mb-3"></i>
+                                            <h3 id="pedidosEntregues" class="mb-1">0</h3>
+                                            <p class="text-success fw-semibold mb-1">Entregues</p>
+                                            <small class="text-muted" id="pctEntregues">0%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-4">
+                                    <div class="card border-start border-warning border-4 h-100">
+                                        <div class="card-body">
+                                            <i class="bi bi-clock-history fs-1 text-warning mb-3"></i>
+                                            <h3 id="pedidosPendentes" class="mb-1">0</h3>
+                                            <p class="text-warning fw-semibold mb-1">Pendentes</p>
+                                            <small class="text-muted" id="pctPendentes">0%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-4">
+                                    <div class="card border-start border-danger border-4 h-100">
+                                        <div class="card-body">
+                                            <i class="bi bi-x-circle-fill fs-1 text-danger mb-3"></i>
+                                            <h3 id="pedidosCancelados" class="mb-1">0</h3>
+                                            <p class="text-danger fw-semibold mb-1">Cancelados</p>
+                                            <small class="text-muted" id="pctCancelados">0%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-4">
+                                    <div class="card border-start border-secondary border-4 h-100">
+                                        <div class="card-body">
+                                            <i class="bi bi-arrow-clockwise fs-1 text-secondary mb-3"></i>
+                                            <h3 id="pedidosHoje" class="mb-1">0</h3>
+                                            <p class="text-secondary fw-semibold mb-1">Hoje</p>
+                                            <small class="text-muted">Novos pedidos</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELAS RÁPIDAS -->
+            <div class="row g-4">
+                <!-- ÚLTIMOS PEDIDOS -->
+                <div class="col-xl-8">
+                    <div class="card shadow-lg h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-cart me-2"></i>Últimos Pedidos (10 mais recentes)
+                            </h6>
+                            <a href="pedido.html" class="btn btn-light btn-sm">Ver Todos</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Cliente</th>
+                                            <th>Produto</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Data</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelaUltimosPedidos">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4 text-muted">
+                                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                                Carregando pedidos...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOP PRODUTOS -->
+                <div class="col-xl-4">
+                    <div class="card shadow-lg h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-trophy me-2"></i>Top 5 Produtos Vendidos
+                            </h6>
+                            <a href="produto.html" class="btn btn-light btn-sm">Ver Todos</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush" id="topProdutos">
+                                <li class="list-group-item text-center py-5 text-muted">
+                                    <i class="bi bi-graph-up fs-3 d-block mb-2"></i>
+                                    Carregando top produtos...
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 🎯 VARIÁVEIS GLOBAIS
+        let PERFIL = null;
+        let clientesData = [];
+        let produtosData = [];
+        let pedidosData = [];
+
+        // 🎯 ELEMENTOS DOM
+        const loadingDiv = document.getElementById('loadingDiv');
+        const mainContent = document.getElementById('mainContent');
+        const perfilBadgeNav = document.getElementById('perfilBadgeNav');
+        const perfilBadge = document.getElementById('perfilBadge');
+        const ultimaAtualizacao = document.getElementById('ultimaAtualizacao');
+        const resumoGeral = document.getElementById('resumoGeral');
+        const tabelaUltimosPedidos = document.getElementById('tabelaUltimosPedidos');
+        const topProdutos = document.getElementById('topProdutos');
+
+        // 🔐 VERIFICAÇÃO ADMIN (EXCLUSIVA)
+        function verificarAutenticacao() {
+            const perfilArmazenado = localStorage.getItem('perfil')?.toUpperCase().trim();
+            
+            if (!perfilArmazenado) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            
+            // ✅ APENAS ADMIN PODE ACESSAR DASHBOARD
+            if (!['ADMIN', 'ADM'].includes(perfilArmazenado)) {
+                window.location.href = PERFIL === 'CLIENTE' ? 'pedido.html' : 'login.html';
+                return false;
+            }
+            
+            PERFIL = perfilArmazenado;
+            return true;
+        }
+
+        // 🌐 API HELPER
+        async function fetchApi(url, options = {}) {
+            options.credentials = 'include';
+            options.headers = {
+                ...options.headers,
+                'Content-Type': 'application/json'
+            };
+            
+            const response = await fetch(url, options);
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('perfil');
+                mostrarToast('Sessão expirada! Faça login novamente.', 'danger');
+                setTimeout(() => window.location.href = 'login.html', 1500);
+                return null;
+            }
+            return response;
+        }
+
+        // 🚪 LOGOUT
+        function logout() {
+            localStorage.removeItem('perfil');
+            window.location.href = 'login.html';
+        }
+
+        // 🔔 TOAST
+        function mostrarToast(mensagem, tipo = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${tipo} border-0 position-fixed`;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${mensagem}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            document.body.appendChild(toast);
+            new bootstrap.Toast(toast).show();
+            toast.addEventListener('hidden.bs.toast', () => toast.remove());
+        }
+
+        // 🔄 ATUALIZAR TUDO
+        async function atualizarTudo() {
+            const loading = document.getElementById('loadingOverlay') || loadingDiv;
+            try {
+                loading.classList.remove('d-none');
+                
+                const [pedidosResp, clientesResp, produtosResp] = await Promise.all([
+                    fetchApi('/api/pedidos'),
+                    fetchApi('/api/clientes'),
+                    fetchApi('/api/produtos')
+                ]);
+                
+                if (!pedidosResp || !clientesResp || !produtosResp) return;
+                
+                pedidosData = await pedidosResp.json();
+                clientesData = await clientesResp.json();
+                produtosData = await produtosResp.json();
+                
+                renderizarDashboard();
+                
+            } catch (error) {
+                console.error('Erro ao atualizar:', error);
+                mostrarToast('Erro ao carregar dados do dashboard!', 'danger');
+            } finally {
+                loading.classList.add('d-none');
+            }
+        }
+
+        // 📊 RENDERIZAR DASHBOARD
+        function renderizarDashboard() {
+            // KPIs
+            document.getElementById('totalClientes').textContent = clientesData.length;
+            document.getElementById('totalProdutos').textContent = produtosData.length;
+            document.getElementById('totalPedidos').textContent = pedidosData.length;
+            
+            const totalFaturamento = pedidosData.reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
+            document.getElementById('totalFaturamento').textContent = `R$ ${totalFaturamento.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2, maximumFractionDigits: 2
+            })}`;
+
+            // Status pedidos
+            const entregues = pedidosData.filter(p => p.status === 'ENTREGUE').length;
+            const pendentes = pedidosData.filter(p => p.status === 'PENDENTE').length;
+            const cancelados = pedidosData.filter(p => p.status === 'CANCELADO').length;
+            const hoje = pedidosData.filter(p => new Date(p.datacriacao).toDateString() === new Date().toDateString()).length;
+
+            document.getElementById('pedidosEntregues').textContent = entregues;
+            document.getElementById('pedidosPendentes').textContent = pendentes;
+            document.getElementById('pedidosCancelados').textContent = cancelados;
+            document.getElementById('pedidosHoje').textContent = hoje;
+
+            // Tabela últimos pedidos
+            const ultimosPedidos = pedidosData.slice(0, 10).map(pedido => `
+                <tr>
+                    <td><span class="badge bg-primary">#${pedido.id}</span></td>
+                    <td class="fw-semibold">${pedido.cliente?.nome || 'N/A'}</td>
+                    <td>${pedido.produto?.nomeProduto || 'N/A'}</td>
+                    <td class="text-success fw-bold">R$ ${parseFloat(pedido.total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td><span class="badge ${pedido.status === 'ENTREGUE' ? 'bg-success' : pedido.status === 'PENDENTE' ? 'bg-warning' : 'bg-danger'}">${pedido.status}</span></td>
+                    <td><small>${new Date(pedido.datacriacao).toLocaleDateString('pt-BR')}</small></td>
+                </tr>
+            `).join('');
+            tabelaUltimosPedidos.innerHTML = ultimosPedidos || '<tr><td colspan="6" class="text-center py-4 text-muted">Nenhum pedido encontrado</td></tr>';
+
+            // Top produtos
+            const topProdutosData = produtosData
+                .map(p => ({...p, totalVendas: pedidosData.filter(pd => pd.produto?.id == p.id).reduce((sum, pd) => sum + parseInt(pd.qtd || 0), 0)}))
+                .sort((a, b) => b.totalVendas - a.totalVendas)
+                .slice(0, 5);
+
+            topProdutos.innerHTML = topProdutosData.map((p, i) => `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">${p.nomeProduto}</div>
+                        <small class="text-muted">${p.totalVendas} unidades vendidas</small>
+                    </div>
+                    <span class="badge bg-success rounded-pill">${i+1}º</span>
+                </li>
+            `).join('') || '<li class="list-group-item text-center py-4 text-muted">Sem vendas</li>';
+
+            // Resumo geral
+            const totalHoje = pedidosData.filter(p => new Date(p.datacriacao).toDateString() === new Date().toDateString()).length;
+            resumoGeral.textContent = `${pedidosData.length} pedidos | R$ ${totalFaturamento.toLocaleString('pt-BR')} faturamento | ${totalHoje} hoje`;
+
+            // Atualização
+            ultimaAtualizacao.textContent = `Atualizado: ${new Date().toLocaleString('pt-BR')}`;
+        }
+
+        // 📥 EXPORTAR CSV
+        function exportarRelatorio() {
+            const csv = [
+                ['ID', 'Cliente', 'Produto', 'Qtd', 'Total', 'Status', 'Data'],
+                ...pedidosData.map(p => [
+                    p.id,
+                    p.cliente?.nome || '',
+                    p.produto?.nomeProduto || '',
+                    p.qtd || '',
+                    `R$ ${parseFloat(p.total || 0).toLocaleString('pt-BR')}`,
+                    p.status || '',
+                    new Date(p.datacriacao).toLocaleDateString('pt-BR')
+                ])
+            ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio-vendas-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            mostrarToast('Relatório exportado com sucesso!', 'success');
+        }
+
+        // 🔄 INICIALIZAÇÃO
+        async function inicializarApp() {
+            if (!verificarAutenticacao()) return;
+            
+            perfilBadgeNav.textContent = PERFIL;
+            perfilBadge.textContent = PERFIL;
+            
+            loadingDiv.style.display = 'none';
+            mainContent.style.display = 'block';
+            
+            await atualizarTudo();
+            mostrarToast('Dashboard carregado com sucesso!', 'success');
+        }
+
+        // 🚀 START
+        window.addEventListener('load', inicializarApp);
+    </script>
+</body>
+</html>
