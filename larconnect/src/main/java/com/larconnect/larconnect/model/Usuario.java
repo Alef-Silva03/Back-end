@@ -1,5 +1,7 @@
 package com.larconnect.larconnect.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -21,8 +23,15 @@ public class Usuario {
 	private String apartamento;
 	// private String foto;
 	private String perfil; // "ADMIN" ou "CLIENTE"
+
+	@Column(name = "reset_token")
+	private String resetToken;
+
+	@Column(name = "token_expiration")
+	private LocalDateTime tokenExpiration;
 	
 	// Getters e Setters
+
 	public Long getId() {
 		return id;
 	}
@@ -85,6 +94,22 @@ public class Usuario {
 
 	public void setPerfil(String perfil) {
 		this.perfil = perfil;
+	}
+
+	public String getResetToken() {
+		return resetToken;
+	}
+
+	public void setResetToken(String resetToken) {
+		this.resetToken = resetToken;
+	}
+
+	public LocalDateTime getTokenExpiration() {
+		return tokenExpiration;
+	}
+
+	public void setTokenExpiration(LocalDateTime tokenExpiration) {
+		this.tokenExpiration = tokenExpiration;
 	}
 
 }

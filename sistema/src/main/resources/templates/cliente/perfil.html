@@ -36,7 +36,7 @@
                     <form th:action="@{/cliente/perfil/atualizar}" method="post" enctype="multipart/form-data">
                         
                         <div class="profile-img-container mb-4">
-                            <img id="imgPreview" th:src="${cliente.foto != null ? '/img/' + cliente.foto : '/img/avatar-padrao.png'}" 
+                            <img id="imgPreview" th:src="${cliente.foto != null ? '/img/perfil/' + cliente.foto : '/img/avatar-padrao.png'}" 
                                  class="profile-img" alt="Foto de Perfil">
                             <label for="fileInput" class="btn btn-primary btn-sm change-photo-btn">
                                 <i class="bi bi-camera-fill"></i>

@@ -25,7 +25,10 @@ public class DashboardController {
         dados.put("nome", logado.getNome());
         dados.put("email", logado.getEmail());
         dados.put("senha", logado.getSenha());
+        dados.put("cpf", logado.getCpf());
+        dados.put("telefone", logado.getTelefone());
         //dados.put("foto", logado.getFoto());
+        dados.put("apartamento", logado.getApartamento());
         dados.put("perfil", logado.getPerfil());
         dados.put("id", logado.getId());
 

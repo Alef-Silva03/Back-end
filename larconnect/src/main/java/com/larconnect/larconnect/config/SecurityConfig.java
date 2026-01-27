@@ -12,51 +12,37 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable()) 
-            .authorizeHttpRequests(auth -> auth
-                // 1. Libera páginas HTML públicas (Login e Esqueci Senha)
-              
-                .requestMatchers("/login.html", "/esqueci-senha.html", "/confirmar-nova-senha.html", "/api/auth/**").permitAll()
-                
-                // 2. Libera toda a API de autenticação (Login, Cadastro, Reset de Senha)
-                .requestMatchers("/api/auth/**").permitAll()
-                
-                // 3. Libera recursos estáticos
-                .requestMatchers("/css/**", "/js/**", "/img/**", "/vendor/**").permitAll()
-                
-                // 4. Qualquer outra requisição (como dashboard.html) exige autenticação
-                .anyRequest().authenticated()
-            )
-            // Configura a política de sessão para permitir login manual via Controller
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-            )
-            .formLogin(form -> form
-                .loginPage("/login.html")
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/api/auth/logout")
-                .logoutSuccessUrl("/login.html")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .permitAll()
-            )
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    // Redireciona para o login se tentar acessar área restrita
-                    response.sendRedirect("/login.html");
-                })
-            );
-
-        return http.build();
+	@Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable()) // Desabilitado para facilitar o desenvolvimento local
+            .authorizeHttpRequests(auth -> auth
+                // Libera as rotas públicas: cadastro, login e recursos estáticos
+                .requestMatchers("/login", "/cadastro", "/usuarios/salvar", "/esqueci-senha", "/resetar-senha").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/img/**", "/webjars/**").permitAll()
+                
+                // Restringe acessos por papel (Role)
+                // O Spring Security espera "ROLE_ADMIN" se usar hasRole, ou "ADMIN" se usar hasAuthority
+                .requestMatchers("/admin/**").hasAuthority("ADMIN")
+                .requestMatchers("/cliente/**").hasAuthority("CLIENTE")
+                
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form
+                .loginPage("/login")
+                .usernameParameter("username") // Alinhado com o name="username" no login.html
+                .passwordParameter("password") // Alinhado com o name="password" no login.html
+                .defaultSuccessUrl("/home", true) 
+                .failureUrl("/login?error=true")
+                .permitAll()
+     
+            );
+        
+        return http.build();
     }
 }
