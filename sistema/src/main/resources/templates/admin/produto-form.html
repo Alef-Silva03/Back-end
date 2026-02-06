@@ -3,75 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Produto - Admin</title>
+    <title th:text="${produto.id == null ? 'Novo Produto' : 'Editar Produto'} + ' - Admin'"></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f8f9fa; }
+        body { background-color: #f4f7f6; }
+        .card { border-radius: 12px; }
         .preview-img { 
             width: 100%; 
             max-width: 200px; 
             height: 200px; 
             object-fit: cover; 
             border-radius: 8px; 
-            border: 2px dashed #dee2e6;
-            display: none; /* Escondido até selecionar uma imagem */
+            border: 2px solid #dee2e6;
         }
+        .header-admin { background-color: #1a1d20; color: white; border-radius: 12px 12px 0 0; }
     </style>
 </head>
 <body>
 
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow border-0">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Cadastrar Novo Produto</h5>
-                    <a th:href="@{/admin/produtos}" class="btn btn-outline-light btn-sm">Voltar</a>
+        <div class="col-md-10">
+            
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin/dashboard}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/produtos}">Produtos</a></li>
+                    <li class="breadcrumb-item active" th:text="${produto.id == null ? 'Novo' : 'Editar'}"></li>
+                </ol>
+            </nav>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header header-admin py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-box-seam me-2"></i>
+                        <span th:text="${produto.id == null ? 'Cadastrar Novo Produto' : 'Editar Produto: ' + produto.nome}"></span>
+                    </h5>
+                    <a th:href="@{/admin/produtos}" class="btn btn-outline-light btn-sm px-3">
+                        <i class="bi bi-arrow-left me-1"></i> Cancelar
+                    </a>
                 </div>
+                
                 <div class="card-body p-4">
-                    
-                    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+                    <div th:if="${erro}" class="alert alert-danger shadow-sm border-0" th:text="${erro}"></div>
 
                     <form th:action="@{/admin/produtos/salvar}" th:object="${produto}" method="post" enctype="multipart/form-data">
-                        <div class="row">
+                        <input type="hidden" th:field="*{id}">
+                        <input type="hidden" th:field="*{foto}">
+
+                        <div class="row g-4">
                             <div class="col-md-7">
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Nome do Produto</label>
-                                    <input type="text" th:field="*{nome}" class="form-control" placeholder="Ex: Teclado Mecânico RGB" required>
+                                    <input type="text" th:field="*{nome}" class="form-control form-control-lg" placeholder="Ex: Monitor Gamer 144hz" required>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Preço de Venda (R$)</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">R$</span>
-                                        <input type="number" step="0.01" th:field="*{preco}" class="form-control" placeholder="0,00" required>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Preço (R$)</label>
+                                        <div class="input-group shadow-sm">
+                                            <span class="input-group-text bg-light fw-bold">R$</span>
+                                            <input type="number" step="0.01" min="0" th:field="*{preco}" class="form-control" placeholder="0.00" required>
+                                        </div>
                                     </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Qtd em Estoque</label>
+                                        <input type="number" min="0" th:field="*{quantidade}" class="form-control shadow-sm" placeholder="0" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Categoria</label>
+                                    <select th:field="*{categoria}" class="form-select shadow-sm" required>
+                                        <option value="" hidden>Selecione uma categoria...</option>
+                                        <option value="Periféricos">Periféricos</option>
+                                        <option value="Hardware">Hardware</option>
+                                        <option value="Monitores">Monitores</option>
+                                        <option value="Cadeiras">Cadeiras</option>
+                                        <option value="Acessórios">Acessórios</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <div class="col-md-5 text-center">
-                                <label class="form-label fw-bold d-block text-start">Imagem do Produto</label>
-                                
-                                <div class="mb-3">
-                                    <img id="imgPreview" src="#" alt="Preview" class="preview-img mx-auto mb-2">
-                                    <div id="placeholderPreview" class="bg-light d-flex align-items-center justify-content-center border rounded" style="height: 200px;">
-                                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold d-block text-center">Imagem do Produto</label>
+                                <div class="text-center mb-3">
+                                    <img id="imgPreview" 
+                                         th:src="${produto.foto != null && produto.foto != '' ? '/img/produtos/' + produto.foto : '#'}" 
+                                         th:style="${produto.foto != null && produto.foto != '' ? 'display:block;' : 'display:none;'}"
+                                         class="preview-img mx-auto mb-2 shadow-sm"
+                                         onerror="this.style.display='none'; document.getElementById('placeholderPreview').style.display='flex';">
+                                    
+                                    <div id="placeholderPreview" 
+                                         th:style="${produto.foto != null && produto.foto != '' ? 'display:none;' : 'display:flex;'}"
+                                         class="bg-light d-flex align-items-center justify-content-center border rounded mx-auto mb-2 shadow-inner" 
+                                         style="height: 200px; width: 100%; max-width: 200px;">
+                                        <i class="bi bi-box2 text-muted" style="font-size: 3rem;"></i>
                                     </div>
                                 </div>
 
-                                <input type="file" name="imagem" id="fileInput" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this)">
-                                <div class="form-text">Formatos aceitos: JPG, PNG.</div>
+                                <div class="input-group input-group-sm">
+                                    <input type="file" name="imagem" id="fileInput" class="form-control" accept="image/*" onchange="previewImage(this)">
+                                </div>
+                                <div class="form-text small text-center mt-1">Formatos aceitos: JPG, PNG, WebP</div>
                             </div>
                         </div>
 
-                        <hr class="my-4">
+                        <hr class="my-4 opacity-25">
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="reset" class="btn btn-light px-4">Limpar</button>
-                            <button type="submit" class="btn btn-primary px-5">
-                                <i class="bi bi-check-circle me-2"></i>Salvar Produto
-                            </button>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>Preencha todos os campos obrigatórios.
+                            </span>
+                            <div>
+                                <button type="reset" class="btn btn-light me-2 px-4 border">Limpar</button>
+                                <button type="submit" class="btn btn-primary px-5 fw-bold shadow">
+                                    <i class="bi bi-check-lg me-2"></i>Salvar Produto
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -81,24 +131,18 @@
 </div>
 
 <script>
-    // Função para mostrar a imagem assim que o usuário seleciona o arquivo
     function previewImage(input) {
         const preview = document.getElementById('imgPreview');
         const placeholder = document.getElementById('placeholderPreview');
         
         if (input.files && input.files[0]) {
             const reader = new FileReader();
-            
             reader.onload = function(e) {
                 preview.src = e.target.result;
                 preview.style.display = 'block';
                 placeholder.style.display = 'none';
             }
-            
             reader.readAsDataURL(input.files[0]);
-        } else {
-            preview.style.display = 'none';
-            placeholder.style.display = 'flex';
         }
     }
 </script>

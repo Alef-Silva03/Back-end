@@ -1,18 +1,29 @@
 package com.vendasfinal.sistema.model;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 
 @Entity
+@Table(name = "produtos")
 public class Produto {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	private String nome;
-	private BigDecimal preco;
-	private String foto; // Campo para a imagem do produto
 
-	// Getters e Setters Manuais (Essencial no seu Eclipse)
+	private String nome;
+	private Double preco;
+	private String foto;
+	private Integer quantidade; // Quantidade total (sincronizada com a tabela estoque)
+	private String categoria;
+
+	// Relacionamento com a tabela de Estoque
+	@OneToOne(mappedBy = "produto", cascade = CascadeType.ALL)
+	private Estoque estoque;
+
+	public Produto() {
+	}
+
+	// --- Getters e Setters ---
 	public Long getId() {
 		return id;
 	}
@@ -29,11 +40,11 @@ public class Produto {
 		this.nome = nome;
 	}
 
-	public BigDecimal getPreco() {
+	public Double getPreco() {
 		return preco;
 	}
 
-	public void setPreco(BigDecimal preco) {
+	public void setPreco(Double preco) {
 		this.preco = preco;
 	}
 
@@ -43,5 +54,29 @@ public class Produto {
 
 	public void setFoto(String foto) {
 		this.foto = foto;
+	}
+
+	public Integer getQuantidade() {
+		return quantidade;
+	}
+
+	public void setQuantidade(Integer quantidade) {
+		this.quantidade = quantidade;
+	}
+
+	public String getCategoria() {
+		return categoria;
+	}
+
+	public void setCategoria(String categoria) {
+		this.categoria = categoria;
+	}
+
+	public Estoque getEstoque() {
+		return estoque;
+	}
+
+	public void setEstoque(Estoque estoque) {
+		this.estoque = estoque;
 	}
 }

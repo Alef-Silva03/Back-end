@@ -23,6 +23,8 @@ public class ClienteController {
 
     @GetMapping("/perfil")
     public String exibirPerfil(Authentication auth, Model model) {
+        if (auth == null) return "redirect:/login";
+
         Cliente cliente = clienteRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
         
@@ -36,10 +38,11 @@ public class ClienteController {
                                    Authentication auth, 
                                    RedirectAttributes attr) {
         try {
+            // Busca o cliente persistido no banco para garantir que não alteramos dados indevidos
             Cliente clienteAtual = clienteRepository.findByEmail(auth.getName())
-                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+                    .orElseThrow(() -> new RuntimeException("Sessão inválida ou cliente não encontrado"));
             
-            // Atualizando dados
+            // Atualizando apenas campos permitidos (Segurança)
             clienteAtual.setNome(clienteDadosNovos.getNome());
             clienteAtual.setCep(clienteDadosNovos.getCep());
             clienteAtual.setLogradouro(clienteDadosNovos.getLogradouro());
@@ -48,15 +51,18 @@ public class ClienteController {
             clienteAtual.setNumero(clienteDadosNovos.getNumero());
             clienteAtual.setComplemento(clienteDadosNovos.getComplemento());
 
+            // Processamento da imagem de perfil
             if (imagem != null && !imagem.isEmpty()) {
+                // O FileStorageService cuida da gravação física
                 String nomeFoto = fileStorageService.salvarArquivo(imagem, "perfil/");
                 clienteAtual.setFoto(nomeFoto);
             }
 
             clienteRepository.save(clienteAtual);
-            attr.addFlashAttribute("sucesso", "Perfil atualizado!");
+            attr.addFlashAttribute("sucesso", "Perfil atualizado com sucesso!");
+            
         } catch (Exception e) {
-            attr.addFlashAttribute("erro", "Erro: " + e.getMessage());
+            attr.addFlashAttribute("erro", "Erro ao atualizar perfil: " + e.getMessage());
         }
         return "redirect:/cliente/perfil";
     }

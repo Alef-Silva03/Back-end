@@ -1,9 +1,12 @@
 package com.vendasfinal.sistema.controller;
 
+import com.vendasfinal.sistema.model.Estoque;
 import com.vendasfinal.sistema.model.Produto;
+import com.vendasfinal.sistema.repository.EstoqueRepository;
 import com.vendasfinal.sistema.repository.ProdutoRepository;
 import com.vendasfinal.sistema.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -11,19 +14,21 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin/produtos")
+@PreAuthorize("hasAuthority('ADMIN')")
 public class ProdutoController {
 
     @Autowired
     private ProdutoRepository produtoRepository;
 
     @Autowired
+    private EstoqueRepository estoqueRepository; // Injetado para resolver o problema do estoque
+
+    @Autowired
     private FileStorageService fileStorageService;
 
-    // LISTAR TODOS OS PRODUTOS
     @GetMapping
     public String listar(Model model) {
         List<Produto> produtos = produtoRepository.findAll();
@@ -31,59 +36,74 @@ public class ProdutoController {
         return "admin/produtos-lista";
     }
 
-    // EXIBIR FORMULÁRIO DE NOVO PRODUTO
     @GetMapping("/novo")
     public String novoForm(Model model) {
         model.addAttribute("produto", new Produto());
         return "admin/produto-form";
     }
 
-    // EXIBIR FORMULÁRIO DE EDIÇÃO
     @GetMapping("/editar/{id}")
     public String editarForm(@PathVariable Long id, Model model, RedirectAttributes attr) {
-        Optional<Produto> produto = produtoRepository.findById(id);
-        if (produto.isPresent()) {
-            model.addAttribute("produto", produto.get());
+        return produtoRepository.findById(id).map(produto -> {
+            model.addAttribute("produto", produto);
             return "admin/produto-form";
-        } else {
+        }).orElseGet(() -> {
             attr.addFlashAttribute("erro", "Produto não encontrado.");
             return "redirect:/admin/produtos";
-        }
+        });
     }
 
-    // SALVAR OU ATUALIZAR PRODUTO
     @PostMapping("/salvar")
-    public String salvar(Produto produto, 
-                         @RequestParam("imagem") MultipartFile imagem, 
+    public String salvar(@ModelAttribute Produto produto, 
+                         @RequestParam(value = "imagem", required = false) MultipartFile imagem, 
                          RedirectAttributes attr) {
         try {
-            // Lógica para Upload de Imagem
-            if (imagem != null && !imagem.isEmpty()) {
-                // Salva o novo arquivo e retorna o nome/caminho
-                String nomeFoto = fileStorageService.salvarArquivo(imagem, "produtos/");
-                produto.setFoto(nomeFoto);
-            } else if (produto.getId() != null) {
-                // Se estiver editando e não enviou foto nova, mantém a foto antiga do banco
-                Produto produtoAntigo = produtoRepository.findById(produto.getId()).get();
-                produto.setFoto(produtoAntigo.getFoto());
+            // 1. Lógica de Imagem
+            if (produto.getId() != null) {
+                Produto produtoBanco = produtoRepository.findById(produto.getId())
+                    .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
+                
+                if (imagem == null || imagem.isEmpty()) {
+                    produto.setFoto(produtoBanco.getFoto());
+                } else {
+                    String nomeFoto = fileStorageService.salvarArquivo(imagem, "produtos/");
+                    produto.setFoto(nomeFoto);
+                }
+            } else {
+                if (imagem != null && !imagem.isEmpty()) {
+                    String nomeFoto = fileStorageService.salvarArquivo(imagem, "produtos/");
+                    produto.setFoto(nomeFoto);
+                }
             }
 
-            produtoRepository.save(produto);
-            attr.addFlashAttribute("sucesso", "Produto salvo com sucesso!");
+            // 2. Salva o Produto na tabela 'produtos'
+            Produto produtoSalvo = produtoRepository.save(produto);
+
+            // 3. SINCRONIZAÇÃO COM A TABELA 'ESTOQUE'
+            // Isso garante que nunca falte o registro que o EstoqueService procura
+            Estoque estoque = estoqueRepository.findByProdutoId(produtoSalvo.getId())
+                    .orElse(new Estoque()); // Se não existir, cria um novo objeto
+            
+            estoque.setProduto(produtoSalvo);
+            estoque.setQuantidade(produtoSalvo.getQuantidade()); // Pega a quantidade digitada no form
+            
+            estoqueRepository.save(estoque); // Salva na tabela 'estoque'
+
+            attr.addFlashAttribute("sucesso", "Produto e estoque salvos com sucesso!");
             
         } catch (Exception e) {
-            attr.addFlashAttribute("erro", "Erro ao processar o produto: " + e.getMessage());
+            attr.addFlashAttribute("erro", "Erro ao processar: " + e.getMessage());
             return "redirect:/admin/produtos/novo";
         }
         
         return "redirect:/admin/produtos";
     }
 
-    // EXCLUIR PRODUTO
-    @GetMapping("/excluir/{id}")
+    @PostMapping("/excluir/{id}")
     public String excluir(@PathVariable Long id, RedirectAttributes attr) {
         try {
-            // Verifica se o produto existe antes de deletar
+            // O JPA cuidará da exclusão do estoque se o cascade estiver correto, 
+            // mas por segurança podemos verificar a existência.
             if (produtoRepository.existsById(id)) {
                 produtoRepository.deleteById(id);
                 attr.addFlashAttribute("sucesso", "Produto removido com sucesso!");
@@ -91,8 +111,7 @@ public class ProdutoController {
                 attr.addFlashAttribute("erro", "Produto não encontrado.");
             }
         } catch (Exception e) {
-            // Caso o produto esteja vinculado a um pedido, o banco impedirá a exclusão (Integridade Referencial)
-            attr.addFlashAttribute("erro", "Não é possível excluir este produto pois ele já faz parte de pedidos realizados.");
+            attr.addFlashAttribute("erro", "Não é possível excluir: este produto possui pedidos vinculados.");
         }
         return "redirect:/admin/produtos";
     }

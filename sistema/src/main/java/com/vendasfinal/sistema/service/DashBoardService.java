@@ -5,6 +5,7 @@ import com.vendasfinal.sistema.model.StatusPedido;
 import com.vendasfinal.sistema.repository.PedidoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,18 +17,24 @@ public class DashBoardService {
 
     /**
      * Calcula o total de todas as vendas com status CONFIRMADO.
-     * Alterado de BigDecimal para Double para manter compatibilidade com o Model Pedido.
      */
+    @Transactional(readOnly = true)
     public Double calcularTotalVendasConfirmadas() {
-        // Busca a lista de pedidos com status CONFIRMADO
         List<Pedido> pedidosConfirmados = pedidoRepository.findByStatus(StatusPedido.CONFIRMADO);
         
-        // Usamos mapToDouble para converter o Double objeto em primitivo e somar
+        if (pedidosConfirmados == null || pedidosConfirmados.isEmpty()) {
+            return 0.0;
+        }
+
         return pedidosConfirmados.stream()
                 .mapToDouble(p -> p.getValorTotal() != null ? p.getValorTotal() : 0.0)
                 .sum();
     }
 
+    /**
+     * Conta quantos pedidos existem com um determinado status.
+     */
+    @Transactional(readOnly = true)
     public long contarPedidosPorStatus(StatusPedido status) {
         return pedidoRepository.countByStatus(status);
     }

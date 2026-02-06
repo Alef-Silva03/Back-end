@@ -1,5 +1,6 @@
 package com.vendasfinal.sistema.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +13,9 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private CustomLoginSuccessHandler successHandler;
+
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -20,33 +24,42 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Desabilitado para facilitar o desenvolvimento local
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/h2-console/**", "/usuarios/salvar")
+            )
             .authorizeHttpRequests(auth -> auth
-                // Libera as rotas públicas: cadastro, login e recursos estáticos
-                .requestMatchers("/login", "/cadastro", "/usuarios/salvar", "/esqueci-senha", "/resetar-senha").permitAll()
+                // 1. RECURSOS ESTÁTICOS
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/webjars/**").permitAll()
+
+                // 2. O ADMIN É PROIBIDO NA VITRINE (Acesso Negado se tentar entrar na loja)
+                // Usamos o acesso exclusivo para CLIENTE ou Usuário não logado
+                .requestMatchers("/loja/**").hasAuthority("CLIENTE") 
                 
-                // Restringe acessos por papel (Role)
-                // O Spring Security espera "ROLE_ADMIN" se usar hasRole, ou "ADMIN" se usar hasAuthority
+                // 3. O CLIENTE É PROIBIDO NO ADMIN
                 .requestMatchers("/admin/**").hasAuthority("ADMIN")
-                .requestMatchers("/cliente/**").hasAuthority("CLIENTE")
                 
+                // 4. ROTAS PÚBLICAS (Apenas Login e Cadastro básico)
+                .requestMatchers("/", "/login", "/cadastro", "/usuarios/salvar", "/esqueci-senha", "/resetar-senha").permitAll()
+                
+                // 5. QUALQUER OUTRA ROTA (Exige estar logado)
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
                 .loginPage("/login")
-                .usernameParameter("username") // Alinhado com o name="username" no login.html
-                .passwordParameter("password") // Alinhado com o name="password" no login.html
-                .defaultSuccessUrl("/home", true) 
+                .usernameParameter("username")
+                .passwordParameter("password")
+                .successHandler(successHandler) // Crucial: Admin -> Dashboard / Cliente -> Loja
                 .failureUrl("/login?error=true")
                 .permitAll()
             )
             .logout(logout -> logout
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                .logoutSuccessUrl("/login?logout")
+                .logoutSuccessUrl("/login?logout=true") // Volta para o login após sair
                 .deleteCookies("JSESSIONID")
+                .invalidateHttpSession(true)
                 .permitAll()
-            );
+            )
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         
         return http.build();
     }

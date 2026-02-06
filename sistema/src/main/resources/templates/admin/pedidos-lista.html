@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Pedidos - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .badge-status { font-size: 0.85rem; padding: 0.5em 1em; border-radius: 50px; }
+        .table-hover tbody tr:hover { background-color: rgba(0,0,0,.03); transition: 0.2s; }
+        .card { border-radius: 15px; border: none; }
+        .btn-action { width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+    <div class="container">
+        <a class="navbar-brand fw-bold" th:href="@{/admin/dashboard}">
+            <i class="bi bi-shield-lock me-2"></i>SISTEMA ADMIN
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" th:href="@{/admin/dashboard}">Dashboard</a>
+            <a class="nav-link" th:href="@{/admin/clientes}">Clientes</a>
+            <a class="nav-link" th:href="@{/admin/produtos}">Produtos</a>
+            <a class="nav-link active" th:href="@{/admin/pedidos}">Pedidos</a>
+            <form th:action="@{/logout}" method="post" class="ms-lg-3">
+                <button type="submit" class="btn btn-sm btn-outline-danger px-3 rounded-pill">Sair</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0 text-dark"><i class="bi bi-cart-fill me-2 text-primary"></i>Gestão de Pedidos</h3>
+            <p class="text-muted mb-0">Visualize e gerencie todas as vendas do sistema.</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-white text-dark border shadow-sm p-2 px-3">
+                Total de Registros: <strong th:text="${#lists.size(pedidos)}">0</strong>
+            </span>
+        </div>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card shadow-sm overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Cliente</th>
+                        <th>Data do Pedido</th>
+                        <th>Valor Total</th>
+                        <th>Status</th>
+                        <th class="text-center pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="p : ${pedidos}">
+                        <td class="ps-4 fw-bold text-primary" th:text="'#' + ${p.id}">#1</td>
+                        <td>
+                            <div class="fw-bold text-dark" th:text="${p.cliente.nome}">Nome do Cliente</div>
+                            <small class="text-muted" th:text="${p.cliente.email}">email@exemplo.com</small>
+                        </td>
+                        <td th:text="${#temporals.format(p.dataPedido, 'dd/MM/yyyy HH:mm')}">01/01/2024</td>
+                        <td class="fw-bold text-dark" th:text="${'R$ ' + #numbers.formatDecimal(p.valorTotal ?: 0, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                        <td>
+                            <span th:class="${#strings.toString(p.status) == 'CONFIRMADO' ? 
+                                    'badge badge-status bg-success-subtle text-success border border-success' : 
+                                    'badge badge-status bg-warning-subtle text-warning-emphasis border border-warning'}" 
+                                  th:text="${p.status}">PENDENTE</span>
+                        </td>
+                        <td class="pe-4 text-center">
+                            <div class="d-flex justify-content-center gap-2">
+                                <a th:href="@{/admin/pedidos/detalhes/{id}(id=${p.id})}" 
+                                   class="btn btn-sm btn-outline-primary btn-action" title="Ver Detalhes">
+                                    <i class="bi bi-search"></i>
+                                </a>
+
+                                <form th:if="${#strings.toString(p.status) == 'PENDENTE'}" 
+                                      th:action="@{/admin/pedidos/confirmar/{id}(id=${p.id})}" method="post">
+                                    <button type="submit" class="btn btn-sm btn-success btn-action" title="Confirmar Pagamento">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+
+                                <form th:action="@{/admin/pedidos/excluir/{id}(id=${p.id})}" method="post" 
+                                      onsubmit="return confirm('ATENÇÃO: Deseja realmente excluir este pedido permanentemente?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger btn-action" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr th:if="${#lists.isEmpty(pedidos)}">
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bi bi-inbox text-muted display-4 d-block mb-3"></i>
+                            <p class="text-muted fw-bold">Nenhum pedido encontrado no banco de dados.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

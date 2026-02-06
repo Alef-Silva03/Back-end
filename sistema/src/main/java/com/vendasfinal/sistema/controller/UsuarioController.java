@@ -2,76 +2,67 @@ package com.vendasfinal.sistema.controller;
 
 import com.vendasfinal.sistema.model.Cliente;
 import com.vendasfinal.sistema.model.Usuario;
+import com.vendasfinal.sistema.dto.UsuarioDTO;
 import com.vendasfinal.sistema.repository.UsuarioRepository;
 import com.vendasfinal.sistema.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class UsuarioController {
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Autowired
-    private FileStorageService fileStorageService;
+    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private BCryptPasswordEncoder passwordEncoder;
+    @Autowired private FileStorageService fileStorageService;
 
     @GetMapping("/cadastro")
-    public String exibirCadastro() {
+    public String exibirCadastro(Model model) {
+        model.addAttribute("usuarioDTO", new UsuarioDTO());
         return "cadastro";
     }
 
     @PostMapping("/usuarios/salvar")
-    public String salvarNovoUsuario(HttpServletRequest request, 
-                                   @RequestParam("tipoUsuario") String tipoUsuario,
-                                   @RequestParam("imagem") MultipartFile imagem,
+    public String salvarNovoUsuario(@ModelAttribute("usuarioDTO") UsuarioDTO dto, 
+                                   @RequestParam(value = "imagem", required = false) MultipartFile imagem,
                                    RedirectAttributes attr) {
         try {
-            Usuario usuario;
+            if (usuarioRepository.findByEmail(dto.getEmail()).isPresent()) {
+                attr.addFlashAttribute("erro", "Este e-mail já está cadastrado.");
+                return "redirect:/cadastro";
+            }
 
-            // Lógica de Herança: Se for CLIENTE, criamos o objeto especializado
-            if ("CLIENTE".equals(tipoUsuario)) {
+            Usuario usuario;
+            if ("CLIENTE".equals(dto.getTipoUsuario())) {
                 Cliente cliente = new Cliente();
-                // Pegando dados específicos de cliente que vêm do formulário
-                cliente.setCpf(request.getParameter("cpf"));
-                cliente.setCep(request.getParameter("cep"));
-                cliente.setLogradouro(request.getParameter("logradouro"));
-                cliente.setBairro(request.getParameter("bairro"));
-                cliente.setCidade(request.getParameter("cidade"));
-                cliente.setNumero(request.getParameter("numero"));
-                cliente.setComplemento(request.getParameter("complemento"));
+                cliente.setCpf(dto.getCpf());
+                cliente.setCep(dto.getCep());
+                cliente.setLogradouro(dto.getLogradouro());
+                cliente.setBairro(dto.getBairro());
+                cliente.setCidade(dto.getCidade());
+                cliente.setNumero(dto.getNumero());
+                cliente.setComplemento(dto.getComplemento());
                 usuario = cliente;
             } else {
                 usuario = new Usuario();
             }
 
-            // Dados comuns a ambos (Admin e Cliente)
-            usuario.setNome(request.getParameter("nome"));
-            usuario.setEmail(request.getParameter("email"));
-            usuario.setSenha(passwordEncoder.encode(request.getParameter("senha")));
-            usuario.setRole(tipoUsuario);
+            usuario.setNome(dto.getNome());
+            usuario.setEmail(dto.getEmail());
+            usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
+            usuario.setRole(dto.getTipoUsuario());
 
-            // Upload de imagem
             if (imagem != null && !imagem.isEmpty()) {
                 String nomeFoto = fileStorageService.salvarArquivo(imagem, "perfil/");
                 usuario.setFoto(nomeFoto);
             }
 
-            // O Hibernate detecta se 'usuario' é instância de Cliente e salva nas duas tabelas
             usuarioRepository.save(usuario);
-
-            attr.addFlashAttribute("sucesso", "Cadastro realizado com sucesso!");
+            attr.addFlashAttribute("sucesso", "Cadastro realizado! Faça seu login.");
             return "redirect:/login";
 
         } catch (Exception e) {
