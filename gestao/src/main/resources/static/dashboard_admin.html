@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Gestão de Oficina</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root { --sidebar-width: 250px; }
+        body { background-color: #f8f9fa; }
+        .foto-perfil { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #dee2e6; }
+        .sidebar { 
+            min-width: var(--sidebar-width); 
+            max-width: var(--sidebar-width);
+            height: 100vh; 
+            background: #212529; 
+            color: white; 
+            position: fixed;
+        }
+        .sidebar a { color: #adb5bd; text-decoration: none; display: block; padding: 12px 20px; transition: 0.3s; }
+        .sidebar a:hover, .sidebar a.active { background: #343a40; color: white; border-left: 4px solid #0d6efd; }
+        .content { margin-left: var(--sidebar-width); padding: 20px; width: 100%; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+    <div class="d-flex">
+        <nav class="sidebar">
+            <div class="p-3 text-center">
+                <h4 class="fw-bold">Oficina Pro</h4>
+                <small class="text-muted">Painel Administrativo</small>
+            </div>
+            <hr>
+            <a href="#" onclick="listarUsuarios()" class="active">📊 Dashboard</a>
+            <a href="#" onclick="listarUsuarios('CLIENTE')">👥 Clientes</a>
+            <a href="#" onclick="listarUsuarios('FUNCIONARIO')">🛠️ Funcionários</a>
+            <a href="ordens_servico.html">📋 Ordens de Serviço</a>
+            <a href="cadastro.html">➕ Novo Cadastro</a>
+            <hr>
+            <a href="#" onclick="logout()" class="text-danger mt-5">🚪 Sair</a>
+        </nav>
+
+        <main class="content">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <h1 id="tituloPagina" class="h2">Dashboard Geral</h1>
+                <div id="infoAdmin" class="text-end">
+                    <span id="nomeAdmin" class="fw-bold d-block">---</span>
+                    <small id="emailAdmin" class="text-muted small">---</small>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Usuário</th>
+                                    <th>E-mail</th>
+                                    <th>Tipo</th>
+                                    <th>Cidade</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabela">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 1. Verificação de Segurança Imediata
+        const auth = localStorage.getItem('auth');
+        const tipo = localStorage.getItem('user_tipo');
+
+        if (!auth || tipo !== 'ADMINISTRADOR') {
+            window.location.href = 'login.html';
+        }
+
+        // 2. Carregar dados do Admin Logado
+        async function carregarDadosAdmin() {
+            try {
+                const response = await fetch('/api/usuarios/me', {
+                    headers: { 'Authorization': auth }
+                });
+                
+                if (response.ok) {
+                    const admin = await response.json();
+                    document.getElementById('nomeAdmin').innerText = admin.nome;
+                    document.getElementById('emailAdmin').innerText = admin.email;
+                    document.getElementById('loader').style.display = 'none'; // Libera a tela
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+
+        // 3. Listar Usuários com Filtro
+        async function listarUsuarios(tipoFiltro = '') {
+            const tbody = document.getElementById('corpoTabela');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div> Carregando...</td></tr>';
+            
+            try {
+                const url = tipoFiltro ? `/api/usuarios/tipo/${tipoFiltro}` : '/api/usuarios';
+                const response = await fetch(url, {
+                    headers: { 'Authorization': auth }
+                });
+
+                if (response.status === 401) logout();
+
+                if (response.ok) {
+                    const usuarios = await response.json();
+                    renderizarTabela(usuarios);
+                    document.getElementById('tituloPagina').innerText = tipoFiltro ? `Lista de ${tipoFiltro}s` : 'Dashboard Geral';
+                }
+            } catch (error) {
+                console.error("Erro na requisição:", error);
+            }
+        }
+
+        // 4. Renderizar a Tabela
+        function renderizarTabela(lista) {
+            const tbody = document.getElementById('corpoTabela');
+            if (lista.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Nenhum registro encontrado.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = lista.map(user => `
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <img src="${user.foto || 'https://ui-avatars.com/api/?name=' + user.nome}" class="foto-perfil me-3" alt="Foto">
+                            <div>
+                                <div class="fw-bold">${user.nome}</div>
+                                <small class="text-muted">ID: #${user.id}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${user.email}</td>
+                    <td><span class="badge ${user.tipo === 'ADMINISTRADOR' ? 'bg-danger' : 'bg-primary'}">${user.tipo}</span></td>
+                    <td>${user.cidade || 'Não informada'}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editar(${user.id})">✏️</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="excluir(${user.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function editar(id) { alert('Funcionalidade de edição para o ID: ' + id); }
+        function excluir(id) { if(confirm('Deseja excluir este usuário?')) alert('Excluir ID: ' + id); }
+
+        // Inicialização
+        carregarDadosAdmin();
+        listarUsuarios();
+    </script>
+</body>
+</html>
