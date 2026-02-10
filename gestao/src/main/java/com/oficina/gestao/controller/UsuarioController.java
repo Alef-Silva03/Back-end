@@ -1,6 +1,7 @@
 package com.oficina.gestao.controller;
 
 import com.oficina.gestao.model.Usuario;
+import com.oficina.gestao.model.TipoUsuario; // Certifique-se de importar o Enum
 import com.oficina.gestao.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,10 +12,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class UsuarioController {
 
     @Autowired
@@ -25,57 +27,75 @@ public class UsuarioController {
 
     @PostMapping("/cadastrar")
     public ResponseEntity<?> cadastrar(@RequestBody Usuario usuario) {
-        // 1. Validação de e-mail duplicado
-        if (repository.findByEmail(usuario.getEmail()) != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Erro: E-mail já cadastrado.");
-        }
-        
-        // 2. Garante a criptografia (Fundamental para evitar o erro 401 no login)
-        usuario.setSenha(encoder.encode(usuario.getSenha()));
-        
-        // 3. Define um tipo padrão caso venha nulo (Ex: CLIENTE)
-        if (usuario.getTipo() == null) {
-            // usuario.setTipo(TipoUsuario.CLIENTE); 
-        }
+        try {
+            if (repository.findByEmail(usuario.getEmail()).isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Este e-mail já está cadastrado.");
+            }
 
-        Usuario salvo = repository.save(usuario);
-        salvo.setSenha(null); 
-        return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
+            if (usuario.getSenha() == null || usuario.getSenha().isBlank()) {
+                return ResponseEntity.badRequest().body("A senha é obrigatória.");
+            }
+
+            usuario.setSenha(encoder.encode(usuario.getSenha()));
+            Usuario usuarioSalvo = repository.save(usuario);
+            
+            usuarioSalvo.setSenha(null); 
+            return ResponseEntity.status(HttpStatus.CREATED).body(usuarioSalvo);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro: " + e.getMessage());
+        }
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getUsuarioLogado() {
+    public ResponseEntity<Usuario> getUsuarioLogado() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         
-        // Se não houver autenticação válida, retorna 401 imediatamente
-        if (auth == null || !auth.isAuthenticated() || auth.getName().equals("anonymousUser")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário não autenticado.");
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String email = auth.getName(); 
-        Usuario usuario = repository.findByEmail(email);
-        
-        if (usuario == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Perfil não encontrado.");
-        }
-        
-        usuario.setSenha(null); 
-        return ResponseEntity.ok(usuario);
+        return repository.findByEmail(auth.getName())
+                .map(usuario -> {
+                    usuario.setSenha(null);
+                    return ResponseEntity.ok(usuario);
+                })
+                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
     @GetMapping
-    public List<Usuario> listarTodos() {
-        List<Usuario> lista = repository.findAll();
-        lista.forEach(u -> u.setSenha(null));
-        return lista;
+    public ResponseEntity<List<Usuario>> listarTodos() {
+        List<Usuario> usuarios = repository.findAll().stream()
+                .peek(u -> u.setSenha(null))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(usuarios);
     }
 
+    /**
+     * CORREÇÃO: O parâmetro foi alterado de String para TipoUsuario.
+     * O Spring fará o "bind" automático da String da URL para o Enum.
+     */
     @GetMapping("/tipo/{tipo}")
-    public List<Usuario> listarPorTipo(@PathVariable String tipo) {
-        return repository.findAll().stream()
-                .filter(u -> u.getTipo() != null && u.getTipo().name().equalsIgnoreCase(tipo))
-                .peek(u -> u.setSenha(null))
-                .toList();
+    public ResponseEntity<List<Usuario>> listarPorTipo(@PathVariable TipoUsuario tipo) {
+        try {
+            // Agora passamos o Enum diretamente para o Repository
+            List<Usuario> filtrados = repository.findByTipo(tipo);
+            
+            filtrados.forEach(u -> u.setSenha(null));
+            
+            return ResponseEntity.ok(filtrados);
+        } catch (Exception e) {
+            // Se o usuário digitar um tipo que não existe no Enum na URL, retorna 400
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        if (repository.existsById(id)) {
+            repository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }

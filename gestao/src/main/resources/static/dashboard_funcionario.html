@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel do Funcionário - SGOM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sidebar { height: 100vh; background: #212529; color: white; padding-top: 20px; }
+        .nav-link { color: rgba(255,255,255,.7); transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,.1); }
+        .card-status { border-left: 5px solid #ffc107; }
+        .status-CONCLUIDO { border-left-color: #198754; }
+        .status-ORÇAMENTO { border-left-color: #0dcaf0; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 sidebar d-none d-md-block">
+            <div class="text-center mb-4">
+                <i class="bi bi-tools fs-1"></i>
+                <h5 class="mt-2">Oficina Mecânica</h5>
+            </div>
+            <ul class="nav flex-column px-3">
+                <li class="nav-item"><a href="#" class="nav-link active"><i class="bi bi-list-task me-2"></i>Ordens de Serviço</a></li>
+                <li class="nav-item"><a href="cadastro_veiculo.html" class="nav-link"><i class="bi bi-car-front me-2"></i>Novo Veículo</a></li>
+                <li class="nav-item mt-4"><a href="javascript:void(0)" onclick="logout()" class="nav-link text-danger"><i class="bi bi-box-arrow-left me-2"></i>Sair</a></li>
+            </ul>
+        </nav>
+
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Ordens de Serviço em Aberto</h2>
+                <div class="badge bg-dark p-2">Mecânico: <span id="nomeFuncionario">...</span></div>
+            </div>
+
+            <div class="row" id="containerOS">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">Buscando tarefas...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="modalOS" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Atualizar Ordem #<span id="modalId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Veículo:</strong> <span id="modalVeiculo"></span></p>
+                <p><strong>Status Atual:</strong> <span id="modalStatus" class="badge bg-secondary"></span></p>
+                <div class="mb-3">
+                    <label class="form-label">Alterar Status</label>
+                    <select id="novoStatus" class="form-select">
+                        <option value="ORÇAMENTO">ORÇAMENTO</option>
+                        <option value="EM_ANDAMENTO">EM ANDAMENTO</option>
+                        <option value="CONCLUIDO">CONCLUÍDO</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarAlteracao()">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const auth = localStorage.getItem('auth');
+    if (!auth) window.location.href = 'login.html';
+    
+    document.getElementById('nomeFuncionario').innerText = localStorage.getItem('user_nome') || 'Mecânico';
+
+    async function carregarOS() {
+        try {
+            const response = await fetch('/api/ordens-servico', {
+                headers: { 'Authorization': auth }
+            });
+            const data = await response.json();
+            const container = document.getElementById('containerOS');
+            
+            container.innerHTML = data.map(os => `
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm card-status status-${os.status}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="text-muted small">OS #${os.id}</h6>
+                                <span class="badge ${os.status === 'CONCLUIDO' ? 'bg-success' : 'bg-warning text-dark'}">${os.status}</span>
+                            </div>
+                            <h5 class="card-title">${os.veiculo.marca} ${os.veiculo.modelo}</h5>
+                            <p class="card-text mb-1"><i class="bi bi-tag me-2"></i>Placa: <strong>${os.veiculo.placa}</strong></p>
+                            <p class="card-text text-primary fw-bold">R$ ${os.valorTotal.toFixed(2)}</p>
+                            <button class="btn btn-sm btn-outline-dark w-100 mt-2" onclick="abrirModal(${os.id}, '${os.veiculo.modelo}', '${os.status}')">
+                                <i class="bi bi-pencil-square"></i> Gerenciar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    let osSelecionada = null;
+    const modalRef = new bootstrap.Modal(document.getElementById('modalOS'));
+
+    function abrirModal(id, modelo, status) {
+        osSelecionada = id;
+        document.getElementById('modalId').innerText = id;
+        document.getElementById('modalVeiculo').innerText = modelo;
+        document.getElementById('modalStatus').innerText = status;
+        document.getElementById('novoStatus').value = status;
+        modalRef.show();
+    }
+
+    async function salvarAlteracao() {
+        const novoStatus = document.getElementById('novoStatus').value;
+        const endpoint = novoStatus === 'CONCLUIDO' 
+            ? `/api/ordens-servico/${osSelecionada}/finalizar` 
+            : `/api/ordens-servico/${osSelecionada}`;
+
+        const method = novoStatus === 'CONCLUIDO' ? 'PUT' : 'PATCH'; // Ajuste conforme seu controller
+
+        try {
+            // Se for apenas alteração de status simples, enviamos um PUT com o objeto atualizado
+            const response = await fetch(`/api/ordens-servico/${osSelecionada}`, {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': auth,
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ status: novoStatus })
+            });
+
+            if (response.ok) {
+                modalRef.hide();
+                carregarOS();
+            }
+        } catch (err) {
+            alert("Erro ao atualizar!");
+        }
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'login.html';
+    }
+
+    carregarOS();
+</script>
+</body>
+</html>

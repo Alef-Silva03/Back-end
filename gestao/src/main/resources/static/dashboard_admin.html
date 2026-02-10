@@ -5,170 +5,221 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Gestão de Oficina</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
-        :root { --sidebar-width: 250px; }
         body { background-color: #f8f9fa; }
         .foto-perfil { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 2px solid #dee2e6; }
-        .sidebar { 
-            min-width: var(--sidebar-width); 
-            max-width: var(--sidebar-width);
-            height: 100vh; 
-            background: #212529; 
-            color: white; 
-            position: fixed;
+        .sidebar { height: 100vh; background: #212529; color: white; padding-top: 20px; position: fixed; z-index: 1000; transition: all 0.3s; }
+        .sidebar a { color: #adb5bd; text-decoration: none; display: block; padding: 12px 20px; transition: 0.3s; border-radius: 5px; margin: 0 10px; }
+        .sidebar a:hover, .sidebar a.active { background: #343a40; color: white; }
+        .content-area { margin-left: 16.66667%; padding: 30px; transition: 0.3s; }
+        .card-faturamento { background: linear-gradient(45deg, #0d6efd, #0dcaf0); color: white; border: none; transition: transform 0.3s; }
+        .card-faturamento:hover { transform: translateY(-5px); }
+        
+        @media (max-width: 768px) {
+            .sidebar { position: relative; height: auto; width: 100%; }
+            .content-area { margin-left: 0; padding: 15px; }
         }
-        .sidebar a { color: #adb5bd; text-decoration: none; display: block; padding: 12px 20px; transition: 0.3s; }
-        .sidebar a:hover, .sidebar a.active { background: #343a40; color: white; border-left: 4px solid #0d6efd; }
-        .content { margin-left: var(--sidebar-width); padding: 20px; width: 100%; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
 
-    <div id="loader" class="loading-overlay">
-        <div class="spinner-border text-primary" role="status"></div>
-    </div>
-
-    <div class="d-flex">
-        <nav class="sidebar">
-            <div class="p-3 text-center">
-                <h4 class="fw-bold">Oficina Pro</h4>
-                <small class="text-muted">Painel Administrativo</small>
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 sidebar shadow">
+            <div class="text-center mb-4">
+                <i class="bi bi-shield-lock-fill fs-1 text-primary"></i>
+                <h4 class="mt-2">Painel Admin</h4>
             </div>
             <hr>
-            <a href="#" onclick="listarUsuarios()" class="active">📊 Dashboard</a>
-            <a href="#" onclick="listarUsuarios('CLIENTE')">👥 Clientes</a>
-            <a href="#" onclick="listarUsuarios('FUNCIONARIO')">🛠️ Funcionários</a>
-            <a href="ordens_servico.html">📋 Ordens de Serviço</a>
-            <a href="cadastro.html">➕ Novo Cadastro</a>
+            <div id="menuLateral">
+                <a href="#" onclick="listarUsuarios('', this)" class="nav-item active"><i class="bi bi-people me-2"></i> Todos Usuários</a>
+                <a href="#" onclick="listarUsuarios('CLIENTE', this)" class="nav-item"><i class="bi bi-person-check me-2"></i> Clientes</a>
+                <a href="#" onclick="listarUsuarios('FUNCIONARIO', this)" class="nav-item"><i class="bi bi-tools me-2"></i> Funcionários</a>
+                <a href="#" onclick="listarUsuarios('ADMINISTRADOR', this)" class="nav-item"><i class="bi bi-person-badge me-2"></i> Admins</a>
+            </div>
             <hr>
-            <a href="#" onclick="logout()" class="text-danger mt-5">🚪 Sair</a>
+            <a href="cadastro_veiculo.html"><i class="bi bi-car-front me-2"></i> Novo Veículo</a>
+            <a href="#" onclick="logout()" class="text-danger mt-5 fw-bold"><i class="bi bi-box-arrow-left me-2"></i> Sair</a>
         </nav>
 
-        <main class="content">
-            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
-                <h1 id="tituloPagina" class="h2">Dashboard Geral</h1>
-                <div id="infoAdmin" class="text-end">
-                    <span id="nomeAdmin" class="fw-bold d-block">---</span>
-                    <small id="emailAdmin" class="text-muted small">---</small>
+        <main class="col-md-10 content-area">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <h1 id="tituloPagina" class="h3 fw-bold">Dashboard Geral</h1>
+                <div class="text-end">
+                    <div class="badge bg-dark text-uppercase p-2">Admin: <span id="nomeAdmin">...</span></div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card shadow-sm card-faturamento">
+                        <div class="card-body position-relative">
+                            <h6 class="text-white-50">Faturamento (Serviços Concluídos)</h6>
+                            <h2 id="faturamentoTotal" class="fw-bold">R$ 0,00</h2>
+                            <i class="bi bi-cash-coin position-absolute top-50 end-0 translate-middle fs-1 opacity-25"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">Lista de Registros</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Imprimir</button>
+                </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-4">Usuário</th>
-                                    <th>E-mail</th>
+                                    <th class="ps-4">Foto</th>
+                                    <th>Nome / Email</th>
                                     <th>Tipo</th>
-                                    <th>Cidade</th>
+                                    <th>Localidade</th>
                                     <th class="text-center">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="corpoTabela">
-                                </tbody>
+                                <tr>
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <p class="mt-2 text-muted">Carregando dados...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </main>
     </div>
+</div>
 
-    <script>
-        // 1. Verificação de Segurança Imediata
-        const auth = localStorage.getItem('auth');
-        const tipo = localStorage.getItem('user_tipo');
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const auth = localStorage.getItem('auth');
+    const userTipo = localStorage.getItem('user_tipo');
 
-        if (!auth || tipo !== 'ADMINISTRADOR') {
-            window.location.href = 'login.html';
+    // Segurança
+    if (!auth || userTipo !== 'ADMINISTRADOR') {
+        alert("Acesso Negado!");
+        window.location.href = 'login.html';
+    }
+
+    document.getElementById('nomeAdmin').innerText = localStorage.getItem('user_nome') || 'Administrador';
+
+    // 1. Listar Usuários com Gerenciamento de Classe Active
+    async function listarUsuarios(tipoFiltro = '', elemento = null) {
+        // Atualiza estilo do menu lateral
+        if (elemento) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            elemento.classList.add('active');
         }
 
-        // 2. Carregar dados do Admin Logado
-        async function carregarDadosAdmin() {
-            try {
-                const response = await fetch('/api/usuarios/me', {
-                    headers: { 'Authorization': auth }
-                });
-                
-                if (response.ok) {
-                    const admin = await response.json();
-                    document.getElementById('nomeAdmin').innerText = admin.nome;
-                    document.getElementById('emailAdmin').innerText = admin.email;
-                    document.getElementById('loader').style.display = 'none'; // Libera a tela
-                } else {
-                    logout();
-                }
-            } catch (error) {
+        try {
+            const url = tipoFiltro ? `/api/usuarios/tipo/${tipoFiltro}` : '/api/usuarios';
+            const response = await fetch(url, {
+                headers: { 'Authorization': auth }
+            });
+
+            if (response.ok) {
+                const usuarios = await response.json();
+                renderizarTabela(usuarios);
+                document.getElementById('tituloPagina').innerText = tipoFiltro ? `Lista de ${tipoFiltro}s` : 'Dashboard Geral';
+            } else if (response.status === 401) {
                 logout();
             }
+        } catch (error) {
+            console.error("Erro ao listar:", error);
+            document.getElementById('corpoTabela').innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Erro ao conectar com o servidor.</td></tr>';
+        }
+    }
+
+    // 2. Renderizar Tabela com Tratamento de Imagem
+    function renderizarTabela(lista) {
+        const tbody = document.getElementById('corpoTabela');
+        if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Nenhum registro encontrado.</td></tr>';
+            return;
         }
 
-        // 3. Listar Usuários com Filtro
-        async function listarUsuarios(tipoFiltro = '') {
-            const tbody = document.getElementById('corpoTabela');
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm"></div> Carregando...</td></tr>';
+        const placeholder = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+        tbody.innerHTML = lista.map(u => {
+            // Verifica se a string da foto é válida
+            const fotoUrl = (u.foto && u.foto.length > 100) ? u.foto : placeholder;
             
-            try {
-                const url = tipoFiltro ? `/api/usuarios/tipo/${tipoFiltro}` : '/api/usuarios';
-                const response = await fetch(url, {
-                    headers: { 'Authorization': auth }
-                });
-
-                if (response.status === 401) logout();
-
-                if (response.ok) {
-                    const usuarios = await response.json();
-                    renderizarTabela(usuarios);
-                    document.getElementById('tituloPagina').innerText = tipoFiltro ? `Lista de ${tipoFiltro}s` : 'Dashboard Geral';
-                }
-            } catch (error) {
-                console.error("Erro na requisição:", error);
-            }
-        }
-
-        // 4. Renderizar a Tabela
-        function renderizarTabela(lista) {
-            const tbody = document.getElementById('corpoTabela');
-            if (lista.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Nenhum registro encontrado.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = lista.map(user => `
+            const badge = u.tipo === 'ADMINISTRADOR' ? 'bg-danger' : 
+                          u.tipo === 'FUNCIONARIO' ? 'bg-warning text-dark' : 'bg-success';
+            
+            return `
                 <tr>
                     <td class="ps-4">
-                        <div class="d-flex align-items-center">
-                            <img src="${user.foto || 'https://ui-avatars.com/api/?name=' + user.nome}" class="foto-perfil me-3" alt="Foto">
-                            <div>
-                                <div class="fw-bold">${user.nome}</div>
-                                <small class="text-muted">ID: #${user.id}</small>
-                            </div>
-                        </div>
+                        <img src="${fotoUrl}" class="foto-perfil" alt="Perfil" 
+                             onerror="this.onerror=null;this.src='${placeholder}';">
                     </td>
-                    <td>${user.email}</td>
-                    <td><span class="badge ${user.tipo === 'ADMINISTRADOR' ? 'bg-danger' : 'bg-primary'}">${user.tipo}</span></td>
-                    <td>${user.cidade || 'Não informada'}</td>
+                    <td>
+                        <div class="fw-bold text-dark">${u.nome}</div>
+                        <div class="text-muted small">${u.email}</div>
+                    </td>
+                    <td><span class="badge ${badge}">${u.tipo}</span></td>
+                    <td><i class="bi bi-geo-alt-fill text-muted me-1"></i>${u.cidade || '---'} / ${u.bairro || '---'}</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-primary" onclick="editar(${user.id})">✏️</button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="excluir(${user.id})">🗑️</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="excluirUser(${u.id})" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </td>
                 </tr>
-            `).join('');
+            `;
+        }).join('');
+    }
+
+    // 3. Excluir com Refresh de Dados
+    async function excluirUser(id) {
+        if (!confirm("Tem certeza que deseja excluir este usuário?")) return;
+        try {
+            const response = await fetch(`/api/usuarios/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': auth }
+            });
+            if (response.ok) {
+                listarUsuarios();
+                carregarFaturamento();
+            } else {
+                alert("Erro ao excluir usuário. Verifique se ele possui veículos vinculados.");
+            }
+        } catch (error) {
+            alert("Erro de conexão.");
         }
+    }
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        }
+    // 4. Faturamento Dinâmico
+    async function carregarFaturamento() {
+        try {
+            const res = await fetch('/api/ordens-servico', {
+                headers: { 'Authorization': auth }
+            });
+            if (res.ok) {
+                const ordens = await res.json();
+                const total = ordens
+                    .filter(os => os.status === 'CONCLUIDO')
+                    .reduce((soma, os) => soma + (os.valorTotal || 0), 0);
+                
+                document.getElementById('faturamentoTotal').innerText = 
+                    total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+        } catch (e) { console.error("Erro faturamento:", e); }
+    }
 
-        function editar(id) { alert('Funcionalidade de edição para o ID: ' + id); }
-        function excluir(id) { if(confirm('Deseja excluir este usuário?')) alert('Excluir ID: ' + id); }
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'login.html';
+    }
 
-        // Inicialização
-        carregarDadosAdmin();
-        listarUsuarios();
-    </script>
+    // Inicialização
+    listarUsuarios();
+    carregarFaturamento();
+</script>
 </body>
 </html>

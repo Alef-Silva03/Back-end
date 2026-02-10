@@ -2,40 +2,38 @@ package com.oficina.gestao.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.util.List;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Data
 public class Usuario {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String nome;
-
+    
     @Column(unique = true, nullable = false)
     private String email;
-
+    
+    @Column(nullable = false)
     private String senha;
-
-    @Enumerated(EnumType.STRING)
-    private TipoUsuario tipo;
-
+    
     private String telefone;
+
+    // Endereço
     private String cep;
     private String logradouro;
     private String bairro;
     private String cidade;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoUsuario tipo; // ADMINISTRADOR, FUNCIONARIO, CLIENTE
+
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String foto;
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
-    @JsonIgnore // Evita erro de recursão ao listar usuários
-    private List<Veiculo> veiculos;
 
 	public Long getId() {
 		return id;
@@ -67,14 +65,6 @@ public class Usuario {
 
 	public void setSenha(String senha) {
 		this.senha = senha;
-	}
-
-	public TipoUsuario getTipo() {
-		return tipo;
-	}
-
-	public void setTipo(TipoUsuario tipo) {
-		this.tipo = tipo;
 	}
 
 	public String getTelefone() {
@@ -117,20 +107,22 @@ public class Usuario {
 		this.cidade = cidade;
 	}
 
+	public TipoUsuario getTipo() {
+		return tipo;
+	}
+
+	public void setTipo(TipoUsuario tipo) {
+		this.tipo = tipo;
+	}
+
 	public String getFoto() {
 		return foto;
 	}
 
 	public void setFoto(String foto) {
 		this.foto = foto;
-	}
-
-	public List<Veiculo> getVeiculos() {
-		return veiculos;
-	}
-
-	public void setVeiculos(List<Veiculo> veiculos) {
-		this.veiculos = veiculos;
-	}
+	} 
     
+    // Os Getters e Setters manuais podem ser mantidos caso você não queira
+    // depender exclusivamente do Lombok, mas o @Data já os gera automaticamente.
 }

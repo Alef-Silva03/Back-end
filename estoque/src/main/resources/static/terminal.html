@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal de Vendas - Smart Market</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #e9ecef; }
+        .product-list { height: 420px; overflow-y: auto; background: #fff; border-radius: 10px; padding: 20px; border: 1px solid #dee2e6; }
+        .total-box { background: #1a1a1a; color: #00ff41; padding: 25px; border-radius: 12px; font-family: 'Courier New', monospace; }
+        .display-produto { background: white; border-radius: 15px; min-height: 420px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+        #imgProduto { max-height: 200px; object-fit: contain; margin-bottom: 15px; }
+        .item-row { border-bottom: 1px dashed #ccc; padding: 10px 0; transition: 0.2s; }
+        .item-row:hover { background-color: #fff9f9; }
+        .img-cart { width: 40px; height: 40px; object-fit: cover; border-radius: 5px; margin-right: 12px; }
+        .search-results { position: absolute; width: 100%; top: 100%; left: 0; z-index: 2000; max-height: 250px; overflow-y: auto; background: white; border-radius: 0 0 10px 10px; }
+        .comprovante-box { font-family: 'Courier New', monospace; background: #fffbe6; padding: 20px; border: 1px solid #ddd; }
+        .btn-remove { color: #dc3545; cursor: pointer; border: none; background: none; font-size: 1.2rem; line-height: 1; }
+        .btn-remove:hover { color: #a71d2a; transform: scale(1.2); }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid py-4 px-5">
+    <div class="row g-4">
+        <div class="col-md-5">
+            <div class="display-produto shadow-sm p-4 mb-3">
+                <img id="imgProduto" src="/produtos/default.jpg" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081913.png'">
+                <h2 id="nomeDisplay" class="fw-bold text-center h4">Aguardando Produto</h2>
+                <h1 id="precoDisplay" class="display-5 fw-bold text-success">R$ 0,00</h1>
+                
+                <div class="w-100 mt-3 position-relative">
+                    <label class="small fw-bold text-muted">LEITOR DE CÓDIGO</label>
+                    <input type="text" id="barcodeInput" class="form-control form-control-lg text-center border-primary shadow-sm mb-3" 
+                           placeholder="SCANNER ATIVO" autofocus style="letter-spacing: 3px; font-weight: bold;">
+                    
+                    <label class="small fw-bold text-muted">BUSCA POR NOME</label>
+                    <input type="text" id="nomeInput" class="form-control" 
+                           placeholder="Digite o nome do produto..." oninput="buscarPorNome(this.value)">
+                    
+                    <div id="resultadosBusca" class="list-group search-results shadow-lg"></div>
+                </div>
+            </div>
+            <button onclick="novoAtendimento()" class="btn btn-outline-secondary w-100 fw-bold">LIMPAR TELA (ESC)</button>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">🧾 Cupom de Compra</h5>
+                </div>
+                <div class="product-list" id="listaItens">
+                    <p class="text-center text-muted mt-5">Aguardando itens...</p>
+                </div>
+                <div class="card-footer p-0 border-0 bg-transparent">
+                    <div class="total-box d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="d-block small text-white-50">VALOR TOTAL</span>
+                            <h2 class="mb-0 fw-bold">R$ <span id="valorTotal">0.00</span></h2>
+                        </div>
+                        <button onclick="finalizarPagamento()" class="btn btn-success btn-lg px-5 py-3 fw-bold rounded-pill shadow">PAGAR (F10)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalPagamento" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4 text-center">
+                <h6 class="text-muted">TOTAL DA COMPRA</h6>
+                <h1 class="display-4 fw-bold mb-4" id="totalModal">R$ 0,00</h1>
+                <input type="number" id="valorRecebido" class="form-control form-control-lg text-center mb-3 border-success" 
+                       oninput="calcularTroco()" placeholder="Dinheiro Recebido">
+                <div class="p-3 bg-light rounded mb-4">
+                    <h4 class="mb-0">TROCO: <span id="trocoDisplay" class="text-success fw-bold">R$ 0,00</span></h4>
+                </div>
+                <button class="btn btn-success btn-lg w-100 fw-bold" onclick="processarVendaFinal()">CONFIRMAR PAGAMENTO</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalRecibo" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title text-center w-100">Venda Concluída!</h5>
+            </div>
+            <div class="modal-body">
+                <div id="comprovanteConteudo" class="comprovante-box"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary w-100 fw-bold" onclick="novoAtendimento()" data-bs-dismiss="modal">PRÓXIMA VENDA</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let carrinho = [];
+    let totalVenda = 0;
+    let produtosCache = [];
+
+    // Função de carregar cache melhorada para identificar erros de HTML/JSON
+    async function carregarCache() {
+        try {
+            const res = await fetch('/api/admin/estoque');
+            const contentType = res.headers.get("content-type");
+            
+            if (res.ok && contentType && contentType.includes("application/json")) {
+                produtosCache = await res.json();
+                console.log("Busca por nome carregada!");
+            } else {
+                console.error("Erro: O servidor não retornou JSON. Verifique a permissão da rota /api/admin/estoque.");
+            }
+        } catch(e) { 
+            console.error("Erro de conexão ao carregar produtos:", e); 
+        }
+    }
+    carregarCache();
+
+    document.addEventListener('keydown', e => { 
+        if(e.key === 'F10') finalizarPagamento(); 
+        if(e.key === 'Escape') novoAtendimento();
+    });
+
+    document.getElementById('barcodeInput').addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+            buscarProduto(e.target.value);
+            e.target.value = '';
+        }
+    });
+
+    async function buscarProduto(codigo) {
+        if (!codigo) return;
+        try {
+            const res = await fetch(`/api/public/produtos/${codigo}`);
+            if (res.ok) {
+                adicionarAoCarrinho(await res.json());
+            } else {
+                alert("Produto não encontrado!");
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function buscarPorNome(termo) {
+        const div = document.getElementById('resultadosBusca');
+        if (termo.length < 1) { div.innerHTML = ''; return; }
+        
+        const filtrados = produtosCache.filter(p => 
+            p.nome.toLowerCase().includes(termo.toLowerCase()) && p.ativo
+        );
+
+        div.innerHTML = ''; 
+        filtrados.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+            btn.type = "button";
+            btn.innerHTML = `<span>${p.nome}</span><span class="badge bg-success">R$ ${p.preco.toFixed(2)}</span>`;
+            
+            btn.addEventListener('click', () => {
+                adicionarAoCarrinho(p);
+                document.getElementById('nomeInput').value = '';
+                div.innerHTML = '';
+                document.getElementById('barcodeInput').focus();
+            });
+            div.appendChild(btn);
+        });
+    }
+
+    function adicionarAoCarrinho(p) {
+        const item = carrinho.find(i => i.produto.id === p.id);
+        if (item) item.quantidade++;
+        else carrinho.push({ produto: p, quantidade: 1 });
+        
+        document.getElementById('imgProduto').src = p.urlImagem || '/produtos/default.jpg';
+        document.getElementById('nomeDisplay').innerText = p.nome;
+        document.getElementById('precoDisplay').innerText = `R$ ${p.preco.toFixed(2)}`;
+        renderizar();
+    }
+
+    function removerItem(index) {
+        carrinho.splice(index, 1);
+        renderizar();
+    }
+
+    function renderizar() {
+        const lista = document.getElementById('listaItens');
+        lista.innerHTML = '';
+        totalVenda = 0;
+        
+        if(carrinho.length === 0) {
+            lista.innerHTML = '<p class="text-center text-muted mt-5">Aguardando itens...</p>';
+            document.getElementById('valorTotal').innerText = '0.00';
+            return;
+        }
+
+        carrinho.forEach((i, idx) => {
+            const sub = i.produto.preco * i.quantidade;
+            totalVenda += sub;
+            lista.innerHTML += `
+                <div class="item-row d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <button class="btn-remove me-3" onclick="removerItem(${idx})">×</button>
+                        <img src="${i.produto.urlImagem || '/produtos/default.jpg'}" class="img-cart">
+                        <div><strong>${i.produto.nome}</strong><br><small>${i.quantidade}x R$ ${i.produto.preco.toFixed(2)}</small></div>
+                    </div>
+                    <span class="fw-bold">R$ ${sub.toFixed(2)}</span>
+                </div>`;
+        });
+        document.getElementById('valorTotal').innerText = totalVenda.toFixed(2);
+    }
+
+    function finalizarPagamento() {
+        if (carrinho.length === 0) return;
+        document.getElementById('totalModal').innerText = `R$ ${totalVenda.toFixed(2)}`;
+        new bootstrap.Modal(document.getElementById('modalPagamento')).show();
+    }
+
+    function calcularTroco() {
+        const rec = parseFloat(document.getElementById('valorRecebido').value) || 0;
+        document.getElementById('trocoDisplay').innerText = `R$ ${Math.max(0, rec - totalVenda).toFixed(2)}`;
+    }
+
+    async function processarVendaFinal() {
+        const rec = parseFloat(document.getElementById('valorRecebido').value) || 0;
+        if (rec < totalVenda) return alert("Valor insuficiente!");
+
+        const dto = { itens: carrinho.map(i => ({ produto: {id: i.produto.id}, quantidade: i.quantidade })) };
+        
+        try {
+            const res = await fetch('/api/public/venda/finalizar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(dto)
+            });
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('modalPagamento')).hide();
+                exibirReciboNaTela(rec);
+            }
+        } catch(e) { alert("Erro ao finalizar venda."); }
+    }
+
+    function exibirReciboNaTela(rec) {
+        let itensHtml = carrinho.map(i => `
+            <div style="display:flex;justify-content:space-between;font-size:11px">
+                <span>${i.quantidade}x ${i.produto.nome.substring(0,18)}</span>
+                <span>R$ ${(i.produto.preco * i.quantidade).toFixed(2)}</span>
+            </div>`).join('');
+        
+        document.getElementById('comprovanteConteudo').innerHTML = `
+            <center><strong>SMART MARKET</strong><br><small>${new Date().toLocaleString()}</small></center>
+            <hr>${itensHtml}<hr>
+            <strong>TOTAL: R$ ${totalVenda.toFixed(2)}</strong><br>
+            REC: R$ ${rec.toFixed(2)} | TROCO: R$ ${(rec-totalVenda).toFixed(2)}
+        `;
+        new bootstrap.Modal(document.getElementById('modalRecibo')).show();
+    }
+
+    function novoAtendimento() {
+        carrinho = [];
+        renderizar();
+        document.getElementById('nomeInput').value = '';
+        document.getElementById('resultadosBusca').innerHTML = '';
+        carregarCache();
+        setTimeout(() => document.getElementById('barcodeInput').focus(), 500);
+    }
+</script>
+</body>
+</html>

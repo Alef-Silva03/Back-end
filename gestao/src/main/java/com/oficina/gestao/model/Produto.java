@@ -1,6 +1,5 @@
 package com.oficina.gestao.model;
 
-
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -13,7 +12,7 @@ public class Produto {
 
     private String nome;
     private String descricao;
-    private Double preco;
+    private Double precoVenda;
     private Integer quantidadeEstoque;
 	public Long getId() {
 		return id;
@@ -33,11 +32,11 @@ public class Produto {
 	public void setDescricao(String descricao) {
 		this.descricao = descricao;
 	}
-	public Double getPreco() {
-		return preco;
+	public Double getPrecoVenda() {
+		return precoVenda;
 	}
-	public void setPreco(Double preco) {
-		this.preco = preco;
+	public void setPrecoVenda(Double precoVenda) {
+		this.precoVenda = precoVenda;
 	}
 	public Integer getQuantidadeEstoque() {
 		return quantidadeEstoque;
@@ -45,5 +44,6 @@ public class Produto {
 	public void setQuantidadeEstoque(Integer quantidadeEstoque) {
 		this.quantidadeEstoque = quantidadeEstoque;
 	}
+    
     
 }

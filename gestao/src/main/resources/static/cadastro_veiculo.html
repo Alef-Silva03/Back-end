@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastrar Veículo - SGOM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f7f6; }
+        .card-cadastro { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .btn-primary { background-color: #0d6efd; border: none; }
+        #previewFoto { max-width: 100%; max-height: 300px; border-radius: 10px; display: none; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-3">
+                <a href="dashboard_admin.html" class="text-decoration-none text-muted">
+                    <i class="bi bi-arrow-left"></i> Voltar ao Painel
+                </a>
+            </div>
+            
+            <div class="card card-cadastro p-4">
+                <h3 class="text-center mb-4">Novo Veículo</h3>
+                
+                <form id="formVeiculo">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label fw-bold">E-mail do Cliente (Proprietário)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="email" id="emailCliente" class="form-control" placeholder="cliente@email.com" required>
+                                <button class="btn btn-primary" type="button" onclick="verificarCliente()">
+                                    <i class="bi bi-search"></i> Validar
+                                </button>
+                            </div>
+                            <div id="feedbackCliente" class="form-text mt-2"></div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Marca</label>
+                            <input type="text" id="marca" class="form-control" placeholder="Ex: Honda" required disabled>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Modelo</label>
+                            <input type="text" id="modelo" class="form-control" placeholder="Ex: Civic" required disabled>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Placa</label>
+                            <input type="text" id="placa" class="form-control" placeholder="ABC1D23" required disabled>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Ano</label>
+                            <input type="number" id="ano" class="form-control" placeholder="2024" required disabled>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label class="form-label fw-bold">Foto do Veículo</label>
+                            <input type="file" id="inputFoto" class="form-control" accept="image/*" onchange="converterFoto()" disabled>
+                            <div class="text-center">
+                                <img id="previewFoto" class="mt-3 img-thumbnail shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSalvar" class="btn btn-primary w-100 py-2 mt-3" disabled>
+                        <i class="bi bi-check-circle me-2"></i>Salvar Veículo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const auth = localStorage.getItem('auth');
+    let fotoBase64 = "";
+    let clienteEncontrado = null;
+
+    if (!auth) window.location.href = 'login.html';
+
+    // 1. Converter Foto para Base64
+    function converterFoto() {
+        const file = document.getElementById('inputFoto').files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            fotoBase64 = reader.result;
+            const img = document.getElementById('previewFoto');
+            img.src = fotoBase64;
+            img.style.display = 'inline-block';
+        }
+        reader.readAsDataURL(file);
+    }
+
+    // 2. Verificar Cliente por E-mail (Otimizado)
+    async function verificarCliente() {
+        const email = document.getElementById('emailCliente').value;
+        const feedback = document.getElementById('feedbackCliente');
+        
+        if (!email) return;
+
+        feedback.innerHTML = '<span class="text-muted">Buscando...</span>';
+
+        try {
+            // Buscando todos e filtrando (ou use um endpoint específico /api/usuarios/email/{email} se tiver)
+            const response = await fetch(`/api/usuarios`, {
+                headers: { 'Authorization': auth }
+            });
+            const usuarios = await response.json();
+            clienteEncontrado = usuarios.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+            if (clienteEncontrado) {
+                feedback.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Proprietário: <strong>${clienteEncontrado.nome}</strong>`;
+                habilitarCampos(true);
+            } else {
+                feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-danger"></i> Cliente não cadastrado no sistema.`;
+                habilitarCampos(false);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao conectar com o servidor.");
+        }
+    }
+
+    function habilitarCampos(status) {
+        const ids = ['marca', 'modelo', 'placa', 'ano', 'inputFoto', 'btnSalvar'];
+        ids.forEach(id => document.getElementById(id).disabled = !status);
+    }
+
+    // 3. Salvar Veículo
+    document.getElementById('formVeiculo').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const veiculo = {
+            marca: document.getElementById('marca').value,
+            modelo: document.getElementById('modelo').value,
+            placa: document.getElementById('placa').value.toUpperCase(),
+            ano: parseInt(document.getElementById('ano').value),
+            fotoVeiculo: fotoBase64,
+            cliente: { id: clienteEncontrado.id } 
+        };
+
+        try {
+            const response = await fetch('/api/veiculos', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': auth,
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(veiculo)
+            });
+
+            if (response.ok) {
+                alert("Veículo cadastrado e vinculado com sucesso!");
+                window.location.href = "dashboard_admin.html";
+            } else {
+                const msg = await response.text();
+                alert("Erro: " + msg);
+            }
+        } catch (err) {
+            alert("Erro na comunicação com o servidor.");
+        }
+    });
+</script>
+</body>
+</html>

@@ -2,46 +2,95 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Área do Cliente - Oficina</title>
+    <title>Minha Área - Oficina</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-img-top { height: 200px; object-fit: cover; }
+        .status-badge { position: absolute; top: 10px; right: 10px; }
+    </style>
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <span class="navbar-brand">Acompanhamento de Reparo</span>
-            <button class="btn btn-outline-light btn-sm" onclick="logout()">Sair</button>
+            <span class="navbar-brand">🚗 Minha Área</span>
+            <div class="d-flex">
+                <span id="nomeUsuario" class="navbar-text me-3 text-white"></span>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">Sair</button>
+            </div>
         </div>
     </nav>
 
     <div class="container">
+        <h3 class="mb-4">Meus Veículos e Serviços</h3>
         <div id="listaOrdens" class="row">
+            <div class="text-center mt-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p>Carregando seus dados...</p>
             </div>
+        </div>
     </div>
 
     <script>
         async function carregarMinhasOrdens() {
             const auth = localStorage.getItem('auth');
-            if (!auth) window.location.href = 'login.html';
-
-            const response = await fetch('/api/ordens-servico', {
-                headers: { 'Authorization': auth }
-            });
-            const ordens = await response.json();
+            const nome = localStorage.getItem('user_nome');
             
-            const container = document.getElementById('listaOrdens');
-            container.innerHTML = ordens.map(os => `
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100 shadow-sm">
-                        <img src="${os.veiculo.fotoVeiculo || 'https://via.placeholder.com/300'}" class="card-img-top" style="height:200px; object-fit:cover;">
-                        <div class="card-body">
-                            <h5 class="card-title">${os.veiculo.marca} ${os.veiculo.modelo}</h5>
-                            <p class="badge ${os.status === 'CONCLUIDO' ? 'bg-success' : 'bg-warning text-dark'}">${os.status}</p>
-                            <p class="card-text"><strong>Serviço:</strong> ${os.tipoServico || 'Reparo Geral'}</p>
-                            <p class="card-text text-primary fw-bold">Total: R$ ${os.valorTotal.toFixed(2)}</p>
+            if (!auth) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            if(nome) document.getElementById('nomeUsuario').innerText = "Olá, " + nome;
+
+            try {
+                // IMPORTANTE: O endpoint deve ser específico para o cliente logado
+                // Se sua API ainda não tem /me/ordens, use o filtro no backend
+                const response = await fetch('/api/ordens-servico/meus-servicos', {
+                    headers: { 
+                        'Authorization': auth,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.status === 401) {
+                    alert("Sessão expirada. Por favor, faça login novamente.");
+                    logout();
+                    return;
+                }
+
+                const ordens = await response.json();
+                const container = document.getElementById('listaOrdens');
+                
+                if (ordens.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center text-muted"><p>Nenhum serviço encontrado no momento.</p></div>';
+                    return;
+                }
+
+                container.innerHTML = ordens.map(os => `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm border-0">
+                            <span class="badge status-badge ${os.status === 'CONCLUIDO' ? 'bg-success' : 'bg-warning text-dark'}">
+                                ${os.status}
+                            </span>
+                            <img src="${os.veiculo.fotoVeiculo || 'https://via.placeholder.com/300?text=Sem+Foto'}" class="card-img-top">
+                            <div class="card-body">
+                                <h5 class="card-title">${os.veiculo.marca} ${os.veiculo.modelo}</h5>
+                                <p class="card-text text-muted mb-1"><strong>Placa:</strong> ${os.veiculo.placa}</p>
+                                <p class="card-text"><strong>Serviço:</strong> ${os.tipoServico || 'Reparo em andamento'}</p>
+                                <hr>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-primary fw-bold fs-5">R$ ${os.valorTotal.toFixed(2)}</span>
+                                    <small class="text-muted">ID: #${os.id}</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+
+            } catch (err) {
+                document.getElementById('listaOrdens').innerHTML = 
+                    '<div class="alert alert-danger">Erro ao carregar dados. Verifique a conexão.</div>';
+            }
         }
 
         function logout() {

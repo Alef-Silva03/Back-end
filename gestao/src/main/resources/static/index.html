@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>SGOM - Sistema de Gestão de Oficina</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+        .feature-card { transition: 0.3s; border: none; }
+        .feature-card:hover { transform: translateY(-10px); }
+    </style>
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">SGOM</a>
+            <div class="d-flex">
+                <a href="login.html" class="btn btn-outline-light me-2">Entrar</a>
+                <a href="cadastro.html" class="btn btn-primary">Cadastrar-se</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero-section">
+        <div class="container">
+            <h1 class="display-3 fw-bold">Oficina Profissional</h1>
+            <p class="lead">Gestão completa de reparos, funilaria e pintura com transparência total para o cliente.</p>
+            <div class="mt-4" id="botoesAcao">
+                </div>
+        </div>
+    </header>
+
+    <div class="container mt-5" id="secaoOS" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">Abrir Nova Ordem de Serviço</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="formOS">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ID do Veículo:</label>
+                                <input type="number" id="veiculoId" class="form-control form-control-lg" placeholder="Digite o ID do veículo" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tipo de Serviço:</label>
+                                <select id="tipoServico" class="form-select form-control-lg">
+                                    <option value="MECANICA">⚙️ Mecânica</option>
+                                    <option value="PINTURA">🎨 Pintura</option>
+                                    <option value="FUNILARIA">🔨 Funilaria</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg w-100">Gerar Orçamento</button>
+                        </form>
+                        <div id="resultado" class="mt-4 alert alert-success" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Verifica se o usuário está logado ao carregar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            const auth = localStorage.getItem('auth');
+            const tipo = localStorage.getItem('user_tipo');
+            const botoesDiv = document.getElementById('botoesAcao');
+            const secaoOS = document.getElementById('secaoOS');
+
+            if (auth) {
+                // Se logado, mostra opção de ir para o Painel e permite abrir OS
+                botoesDiv.innerHTML = `<button onclick="irParaDashboard()" class="btn btn-warning btn-lg px-5">Meu Painel de Controle</button>`;
+                
+                // Apenas funcionários ou admin podem abrir OS no index (opcional)
+                if (tipo === 'ADMINISTRADOR' || tipo === 'FUNCIONARIO') {
+                    secaoOS.style.display = 'block';
+                }
+            } else {
+                // Se não logado, mostra botões de acesso
+                botoesDiv.innerHTML = `
+                    <a href="login.html" class="btn btn-primary btn-lg px-5 me-3">Fazer Login</a>
+                    <a href="cadastro.html" class="btn btn-light btn-lg px-5">Criar Conta</a>
+                `;
+            }
+        });
+
+        function irParaDashboard() {
+            const tipo = localStorage.getItem('user_tipo');
+            if (tipo === 'ADMINISTRADOR') window.location.href = 'dashboard_admin.html';
+            else if (tipo === 'FUNCIONARIO') window.location.href = 'dashboard_funcionario.html';
+            else window.location.href = 'minha_area_cliente.html';
+        }
+
+        // 2. Lógica de envio da OS (Com cabeçalho de autenticação)
+        document.getElementById('formOS').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const auth = localStorage.getItem('auth');
+            
+            const dados = {
+                veiculo: { id: document.getElementById('veiculoId').value },
+                tipoServico: document.getElementById('tipoServico').value,
+                status: "ORÇAMENTO"
+            };
+
+            try {
+                const response = await fetch('/api/ordens-servico', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': auth 
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const div = document.getElementById('resultado');
+                    div.style.display = 'block';
+                    div.innerHTML = `<strong>Sucesso!</strong> Ordem #${result.id} gerada como ${result.status}.`;
+                } else {
+                    alert("Erro ao gerar OS. Verifique os dados ou sua permissão.");
+                }
+            } catch (err) {
+                alert("Erro de conexão com o servidor.");
+            }
+        });
+    </script>
+</body>
+</html>
