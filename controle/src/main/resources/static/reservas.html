@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservas de Espaço - Lar Connect</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root { --azul: #012E46; --verde: #007A8A; }
+        body { background-color: #f4f7f6; font-family: 'Montserrat', sans-serif; }
+        .navbar-lar { background-color: var(--azul); }
+        .card-reserva { border: none; border-radius: 15px; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .card-reserva:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .btn-reservar { background-color: var(--verde); color: white; border-radius: 10px; font-weight: bold; border: none; }
+        .btn-reservar:hover { background-color: #005f6b; color: white; }
+        .img-espaco { height: 180px; object-fit: cover; border-radius: 15px 15px 0 0; }
+        .bg-verde { background-color: var(--verde) !important; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark navbar-lar shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="dashboard.html">
+                <i class="bi bi-arrow-left-circle me-2"></i> Voltar ao Painel
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2 class="fw-bold" style="color: var(--azul)">Reservar Espaço Comum</h2>
+                <p class="text-muted">Selecione o local e a data desejada para o seu evento.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <button class="btn btn-outline-primary" onclick="alert('Lista de reservas em breve!')">
+                    <i class="bi bi-calendar-event"></i> Minhas Reservas
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card card-reserva h-100">
+                    <img src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=500" class="img-espaco" alt="Salão de Festas">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="fw-bold">Salão de Festas</h5>
+                        <p class="small text-muted">Capacidade: 80 pessoas. Cozinha completa e climatização.</p>
+                        <hr class="mt-auto">
+                        <button class="btn btn-reservar w-100" onclick="abrirModalReserva('SALÃO DE FESTAS')">Reservar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-reserva h-100">
+                    <img src="https://images.unsplash.com/photo-1555243896-c709bfa0b587?auto=format&fit=crop&w=500" class="img-espaco" alt="Churrasqueira">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="fw-bold">Churrasqueira</h5>
+                        <p class="small text-muted">Espaço gourmet com churrasqueira e vista para a piscina.</p>
+                        <hr class="mt-auto">
+                        <button class="btn btn-reservar w-100" onclick="abrirModalReserva('CHURRASQUEIRA')">Reservar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-reserva h-100">
+                    <img src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=500" class="img-espaco" alt="Cinema">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="fw-bold">Sala de Cinema</h5>
+                        <p class="small text-muted">Poltronas reclináveis e sistema de som 7.1.</p>
+                        <hr class="mt-auto">
+                        <button class="btn btn-reservar w-100" onclick="abrirModalReserva('SALA DE CINEMA')">Reservar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalReserva" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" style="border-radius: 20px;">
+                <div class="modal-header" style="background: var(--azul); color: white; border-radius: 20px 20px 0 0;">
+                    <h5 class="modal-title" id="tituloEspaco">Reservar</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formReserva">
+                        <input type="hidden" id="inputEspaco">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Selecione a Data</label>
+                            <input type="date" id="dataReserva" class="form-control" required>
+                        </div>
+                        <div class="alert alert-info small">
+                            <i class="bi bi-info-circle"></i> A taxa de limpeza (R$ 50,00) será incluída no próximo boleto.
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-3 bg-verde border-0">Confirmar Reserva</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('usuarioLogado'));
+        if (!user) window.location.href = 'index.html';
+
+        // Bloqueia datas passadas no calendário
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('dataReserva').setAttribute('min', hoje);
+
+        const modalElement = document.getElementById('modalReserva');
+        const modalReserva = new bootstrap.Modal(modalElement);
+
+        function abrirModalReserva(nomeEspaco) {
+            document.getElementById('tituloEspaco').innerText = `Agendar: ${nomeEspaco}`;
+            document.getElementById('inputEspaco').value = nomeEspaco;
+            modalReserva.show();
+        }
+
+        document.getElementById('formReserva').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const reserva = {
+                usuario: { id: parseInt(user.id) }, // Seguindo o padrão de objeto que usamos em Anúncios
+                espaco: document.getElementById('inputEspaco').value,
+                dataReserva: document.getElementById('dataReserva').value
+            };
+
+            try {
+                const res = await fetch('http://localhost:8080/api/reservas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reserva)
+                });
+
+                if (res.ok) {
+                    alert(`Sucesso! Reserva para ${reserva.espaco} confirmada.`);
+                    modalReserva.hide();
+                    location.reload();
+                } else if (res.status === 409) {
+                    alert('Este espaço já está ocupado nesta data. Por favor, escolha outro dia.');
+                } else {
+                    alert('Erro ao processar reserva. Verifique se a data está disponível.');
+                }
+            } catch (err) {
+                alert('Servidor offline. Certifique-se de que o backend está rodando.');
+            }
+        });
+    </script>
+</body>
+</html>

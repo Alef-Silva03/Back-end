@@ -1,0 +1,50 @@
+/* Definições de Cores e Fontes */
+:root {
+    --primary-color: #012E46; /* Azul-petróleo */
+    --secondary-color: #007A8A; /* Verde-escuro */
+    --background-light: #F4F7F6;
+    --text-white: #FFFFFF;
+}
+
+body {
+    background-color: var(--background-light);
+    font-family: 'Montserrat', sans-serif;
+    color: #333;
+}
+
+/* Botões Grandes (Acessibilidade) */
+.btn-lar-connect {
+    background-color: var(--secondary-color);
+    color: var(--text-white);
+    padding: 20px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    transition: transform 0.2s, background-color 0.2s;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 150px;
+}
+
+.btn-lar-connect:hover {
+    background-color: #005f6b;
+    transform: scale(1.03);
+    color: white;
+}
+
+/* Navbar Estilizada */
+.navbar-custom {
+    background-color: var(--primary-color);
+    padding: 1rem 2rem;
+}
+
+/* Cards de Funcionalidade */
+.card-funcionalidade {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}

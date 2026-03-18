@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Financeiro - Lar Connect</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root { --azul: #012E46; --verde: #007A8A; }
+        body { background-color: #f4f7f6; font-family: 'Montserrat', sans-serif; }
+        .navbar-lar { background-color: var(--azul); }
+        .card-financeiro { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .text-azul { color: var(--azul); }
+        .bg-verde { background-color: var(--verde) !important; color: white; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark navbar-lar shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="dashboard.html">
+                <i class="bi bi-arrow-left-circle me-2"></i> Painel do Síndico
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2 class="fw-bold text-azul mb-4">Controle Financeiro</h2>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card card-financeiro p-4 bg-verde">
+                    <h6>Receita Total (Mês Atual)</h6>
+                    <h2 class="fw-bold">R$ 45.250,00</h2>
+                    <small><i class="bi bi-graph-up"></i> +5% em relação ao mês anterior</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-financeiro p-4 bg-white border-start border-danger border-4">
+                    <h6 class="text-muted">Inadimplência Total</h6>
+                    <h2 class="fw-bold text-danger">R$ 5.400,00</h2>
+                    <small class="text-danger">12 Unidades com pendências</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-financeiro p-4 bg-white border-start border-primary border-4">
+                    <h6 class="text-muted">Fundo de Reserva</h6>
+                    <h2 class="fw-bold text-primary">R$ 120.800,00</h2>
+                    <small class="text-muted">Destinado a obras e emergências</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-financeiro p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-azul">Unidades em Atraso</h5>
+                <button class="btn btn-outline-danger btn-sm" onclick="enviarCobrancaGeral()">
+                    <i class="bi bi-envelope-exclamation"></i> Cobrar Todos
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Unidade</th>
+                            <th>Morador</th>
+                            <th>Vencimento</th>
+                            <th>Valor</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaInadimplentes">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <button class="btn btn-lg px-5 py-3 shadow" style="background-color: var(--azul); color: white; border-radius: 12px;">
+                <i class="bi bi-file-earmark-pdf"></i> Gerar Relatório Completo (PDF)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Verificação de Segurança
+        const user = JSON.parse(localStorage.getItem('usuarioLogado'));
+        if (!user || user.tipoUsuario !== 'SINDICO') {
+            window.location.href = 'index.html';
+        }
+
+        // Simulação de busca de dados do Banco de Dados
+        async function carregarFinanceiro() {
+            try {
+                // Aqui você chamaria um endpoint como /api/financeiro/inadimplentes
+                const res = await fetch('http://localhost:8080/api/usuarios');
+                const usuarios = await res.json();
+                
+                // Filtra apenas os usuários marcados como inadimplentes no banco
+                const inadimplentes = usuarios.filter(u => u.inadimplente === true);
+                const tbody = document.getElementById('tabelaInadimplentes');
+
+                if(inadimplentes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-success">Nenhuma pendência encontrada!</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = inadimplentes.map(u => `
+                    <tr>
+                        <td><strong>${u.numeroApartamento || 'S/N'}</strong></td>
+                        <td>${u.nome}</td>
+                        <td>10/02/2026</td>
+                        <td class="text-danger fw-bold">R$ 450,00</td>
+                        <td>
+                            <button class="btn btn-sm btn-verde bg-verde" onclick="alert('Boleto enviado para ${u.email}')">
+                                <i class="bi bi-send"></i> Reenviar Boleto
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Erro ao carregar dados financeiros:", err);
+            }
+        }
+
+        function enviarCobrancaGeral() {
+            if(confirm("Deseja enviar lembretes de cobrança para todos os inadimplentes?")) {
+                alert("Lembretes enviados com sucesso!");
+            }
+        }
+
+        carregarFinanceiro();
+    </script>
+</body>
+</html>
